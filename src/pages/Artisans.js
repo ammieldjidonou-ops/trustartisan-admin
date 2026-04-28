@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+﻿import React, { useState, useEffect } from "react";
 
 const API_URL = process.env.REACT_APP_API_URL || "https://web-production-b97ed.up.railway.app";
 
@@ -174,6 +174,50 @@ function DossierModal({ artisan, onClose, onAction }) {
         </div>
       )}
 
+      {artisan.photo_profil && (
+        <div style={styles.section}>
+          <label style={styles.label}>Photo de profil</label>
+          <img src={artisan.photo_profil} alt="profil" style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover" }} />
+        </div>
+      )}
+      {artisan.piece_identite && (
+        <div style={styles.section}>
+          <label style={styles.label}>Piece d identite</label>
+          <img src={artisan.piece_identite} alt="piece" style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "8px", border: "1px solid #eee" }} />
+        </div>
+      )}
+      {artisan.portfolio && (
+        <div style={styles.section}>
+          <label style={styles.label}>Portfolio</label>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {artisan.portfolio.split(",").filter(Boolean).map((url, i) => (
+              <img key={i} src={url} alt={"portfolio " + i} style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} />
+            ))}
+          </div>
+        </div>
+      )}
+      {artisan.photo_profil && (
+        <div style={styles.section}>
+          <label style={styles.label}>Photo de profil</label>
+          <img src={artisan.photo_profil} alt="profil" style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover" }} />
+        </div>
+      )}
+      {artisan.piece_identite && (
+        <div style={styles.section}>
+          <label style={styles.label}>Piece d identite</label>
+          <img src={artisan.piece_identite} alt="piece" style={{ width: "100%", maxHeight: "200px", objectFit: "contain", borderRadius: "8px", border: "1px solid #eee" }} />
+        </div>
+      )}
+      {artisan.portfolio && (
+        <div style={styles.section}>
+          <label style={styles.label}>Portfolio</label>
+          <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+            {artisan.portfolio.split(",").filter(Boolean).map((url, i) => (
+              <img key={i} src={url} alt={"portfolio " + i} style={{ width: "100px", height: "100px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee" }} />
+            ))}
+          </div>
+        </div>
+      )}
       <div style={styles.actionBar}>
         {statut === "en_attente_validation" && (
           <>
@@ -375,3 +419,5 @@ const styles = {
   label: { display: "block", fontSize: "13px", fontWeight: "600", color: "#555", marginBottom: "8px" },
   textarea: { width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" },
 };
+
+
