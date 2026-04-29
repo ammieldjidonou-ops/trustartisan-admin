@@ -8,6 +8,7 @@ const MENU = [
   { path: '/missions', icon: '📋', label: 'Missions', roles: ['super_admin', 'moderateur', 'validateur'] },
   { path: '/paiements', icon: '💰', label: 'Paiements', roles: ['super_admin'] },
   { path: '/collaborateurs', icon: '👥', label: 'Collaborateurs', roles: ['super_admin'] },
+  { path: '/signalements', icon: '🚨', label: 'Signalements', roles: ['super_admin', 'moderateur'] },
 ];
 
 const ROLE_LABELS = {
