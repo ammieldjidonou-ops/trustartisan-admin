@@ -8,6 +8,7 @@ import Missions from './pages/Missions';
 import Paiements from './pages/Paiements';
 import Collaborateurs from './pages/Collaborateurs';
 import Signalements from './pages/Signalements';
+import Notifications from './pages/Notifications';
 import Login from './pages/Login';
 import './App.css';
 
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/paiements" element={<Paiements admin={admin} />} />
             <Route path="/collaborateurs" element={<Collaborateurs admin={admin} />} />
             <Route path="/signalements" element={<Signalements admin={admin} />} />
+            <Route path="/notifications" element={<Notifications admin={admin} />} />
           </Routes>
         </main>
       </div>
