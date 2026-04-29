@@ -7,11 +7,7 @@ const DATA_MISSIONS = [
   { mois: 'Jan', missions: 0 }, { mois: 'Fev', missions: 0 }, { mois: 'Mar', missions: 0 },
   { mois: 'Avr', missions: 0 }, { mois: 'Mai', missions: 0 }, { mois: 'Juin', missions: 0 },
 ];
-const DATA_REVENUS = [
-  { mois: 'Jan', commission: 0, tva: 0 }, { mois: 'Fev', commission: 0, tva: 0 },
-  { mois: 'Mar', commission: 0, tva: 0 }, { mois: 'Avr', commission: 0, tva: 0 },
-  { mois: 'Mai', commission: 0, tva: 0 }, { mois: 'Juin', commission: 0, tva: 0 },
-];
+
 
 const CATEGORIES_CONFIG = [
   { id: 1, nom: 'Plomberie', active: true }, { id: 2, nom: 'Electricite', active: true },
