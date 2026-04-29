@@ -29,7 +29,7 @@ export default function Collaborateurs({ admin }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { charger(); }, []);
+  useEffect(() => { charger(); }, [token]);
 
   const creerCollaborateur = async () => {
     if (!form.email || !form.password || !form.nom || !form.prenom) { setErreur('Tous les champs sont requis'); return; }
