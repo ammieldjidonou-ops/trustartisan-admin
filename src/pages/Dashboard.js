@@ -72,8 +72,17 @@ export default function Dashboard() {
   const [artisansAttente, setArtisansAttente] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
+  const [maintenance, setMaintenance] = useState(false);
+  const [maintenanceMsg, setMaintenanceMsg] = useState('Application en maintenance. Revenez bientot !');
+  const [savingMaintenance, setSavingMaintenance] = useState(false);
 
   useEffect(() => {
+    fetch(API_URL + '/api/config').then(r => r.json()).then(data => {
+      if (data.success && data.config.maintenance) {
+        setMaintenance(data.config.maintenance.actif || false);
+        setMaintenanceMsg(data.config.maintenance.message || 'Application en maintenance. Revenez bientot !');
+      }
+    }).catch(() => {});
     Promise.all([
       fetch(API_URL + '/api/admin/artisans').then(r => r.json()),
       fetch(API_URL + '/api/admin/clients').then(r => r.json()),
@@ -100,6 +109,25 @@ export default function Dashboard() {
     }).catch(e => console.error(e))
       .finally(() => setLoadingStats(false));
   }, []);
+
+  const toggleMaintenance = async () => {
+    setSavingMaintenance(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const resp = await fetch(API_URL + '/api/config/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ actif: !maintenance, message: maintenanceMsg })
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setMaintenance(data.maintenance.actif);
+        setActionMsg(data.maintenance.actif ? 'Mode maintenance ACTIVE - App inaccessible au public' : 'Mode maintenance desactive - App accessible');
+        setTimeout(() => setActionMsg(''), 4000);
+      }
+    } catch (e) { setActionMsg('Erreur serveur'); }
+    setSavingMaintenance(false);
+  };
 
   const validerArtisan = async (id) => {
     try {
@@ -191,7 +219,29 @@ export default function Dashboard() {
 
       {onglet === 'stats' && (
         <>
-          {actionMsg && <div style={{ background: '#E1F5EE', border: '1px solid #1D9E75', borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: '#0F6E56', fontWeight: 600 }}>{actionMsg}</div>}
+          {actionMsg && <div style={{ background: maintenance ? '#FEF0EE' : '#E1F5EE', border: '1px solid ' + (maintenance ? '#E74C3C' : '#1D9E75'), borderRadius: 10, padding: '12px 16px', marginBottom: 16, color: maintenance ? '#E74C3C' : '#0F6E56', fontWeight: 600 }}>{actionMsg}</div>}
+          <div className='card' style={{ marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 20, border: '2px solid ' + (maintenance ? '#E74C3C' : '#eee'), backgroundColor: maintenance ? '#FEF0EE' : '#fff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ fontSize: 32 }}>{maintenance ? '🔴' : '🟢'}</div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: maintenance ? '#E74C3C' : '#1D9E75' }}>
+                  {maintenance ? 'Application EN MAINTENANCE' : 'Application EN LIGNE'}
+                </div>
+                <div style={{ color: '#888', fontSize: 13, marginTop: 4 }}>
+                  {maintenance ? 'Les utilisateurs voient le message de maintenance' : 'Application accessible au public'}
+                </div>
+                {maintenance && (
+                  <input value={maintenanceMsg} onChange={e => setMaintenanceMsg(e.target.value)}
+                    style={{ marginTop: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid #E74C3C', fontSize: 13, width: 400 }} />
+                )}
+              </div>
+            </div>
+            <button onClick={toggleMaintenance} disabled={savingMaintenance}
+              style={{ padding: '10px 24px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 14,
+                backgroundColor: maintenance ? '#1D9E75' : '#E74C3C', color: '#fff', minWidth: 160 }}>
+              {savingMaintenance ? 'Mise a jour...' : maintenance ? 'Desactiver maintenance' : 'Activer maintenance'}
+            </button>
+          </div>
 
           {loadingStats ? (
             <p style={{ color: '#888', textAlign: 'center', padding: 32 }}>Chargement des statistiques...</p>
