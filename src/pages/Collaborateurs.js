@@ -29,7 +29,8 @@ export default function Collaborateurs({ admin }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { charger(); }, [token]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { charger(); }, []);
 
   const creerCollaborateur = async () => {
     if (!form.email || !form.password || !form.nom || !form.prenom) { setErreur('Tous les champs sont requis'); return; }
