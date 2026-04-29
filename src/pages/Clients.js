@@ -1,76 +1,123 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
-const CLIENTS = [
-  { id: 1, nom: 'Ammiel Djidonou', phone: '+22997123456', commune: 'Porto-Novo', missions: 3, depenses: 45000, date: '22/04/2026' },
-  { id: 2, nom: 'Rosine Houeto', phone: '+22996234567', commune: 'Cotonou', missions: 7, depenses: 128000, date: '15/03/2026' },
-  { id: 3, nom: 'Patrick Agbota', phone: '+22995345678', commune: 'Akpakpa', missions: 2, depenses: 22000, date: '10/03/2026' },
-  { id: 4, nom: 'Sylvie Kpade', phone: '+22994456789', commune: 'Abomey-Calavi', missions: 5, depenses: 87000, date: '01/02/2026' },
-  { id: 5, nom: 'Georges Mensah', phone: '+22993567890', commune: 'Cadjehoun', missions: 1, depenses: 15000, date: '20/04/2026' },
-];
+const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
 export default function Clients() {
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [erreur, setErreur] = useState(null);
   const [search, setSearch] = useState('');
 
-  const filtres = CLIENTS.filter(c =>
-    c.nom.toLowerCase().includes(search.toLowerCase()) ||
-    c.commune.toLowerCase().includes(search.toLowerCase())
-  );
+  useEffect(() => {
+    fetch(API_URL + '/api/admin/clients')
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) setClients(data.clients || []);
+        else setErreur('Erreur chargement clients');
+      })
+      .catch(() => setErreur('Impossible de contacter le serveur'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtres = clients.filter(c => {
+    const q = search.toLowerCase();
+    return (
+      (c.full_name || '').toLowerCase().includes(q) ||
+      (c.prenom || '').toLowerCase().includes(q) ||
+      (c.nom || '').toLowerCase().includes(q) ||
+      (c.commune || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q)
+    );
+  });
+
+  const formatDate = (iso) => {
+    if (!iso) return '-';
+    return new Date(iso).toLocaleDateString('fr-FR');
+  };
 
   return (
     <div>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700 }}>Clients</h1>
-        <p style={{ color: '#888', fontSize: 14 }}>{CLIENTS.length} clients inscrits</p>
+        <p style={{ color: '#888', fontSize: 14 }}>
+          {loading ? 'Chargement...' : clients.length + ' clients inscrits'}
+        </p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#0066CC' }}>{CLIENTS.length}</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#0066CC' }}>
+            {loading ? '...' : clients.length}
+          </div>
           <div style={{ color: '#888', fontSize: 13 }}>Total clients</div>
         </div>
         <div className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#1D9E75' }}>{CLIENTS.reduce((s, c) => s + c.missions, 0)}</div>
-          <div style={{ color: '#888', fontSize: 13 }}>Missions passées</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#1D9E75' }}>
+            {loading ? '...' : clients.filter(c => c.statut === 'actif').length}
+          </div>
+          <div style={{ color: '#888', fontSize: 13 }}>Clients actifs</div>
         </div>
         <div className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#F5A623' }}>{CLIENTS.reduce((s, c) => s + c.depenses, 0).toLocaleString('fr-FR')} FCFA</div>
-          <div style={{ color: '#888', fontSize: 13 }}>Volume total</div>
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#F5A623' }}>
+            {loading ? '...' : clients.filter(c => {
+              const d = new Date(c.created_at);
+              const now = new Date();
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+            }).length}
+          </div>
+          <div style={{ color: '#888', fontSize: 13 }}>Nouveaux ce mois</div>
         </div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <input placeholder="🔍 Rechercher un client..." value={search} onChange={e => setSearch(e.target.value)} style={{ width: '100%' }} />
+        <input
+          placeholder="Rechercher un client..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{ width: '100%' }}
+        />
       </div>
 
       <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Téléphone</th>
-              <th>Commune</th>
-              <th>Missions</th>
-              <th>Dépenses</th>
-              <th>Inscrit le</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtres.map(c => (
-              <tr key={c.id}>
-                <td style={{ fontWeight: 600 }}>{c.nom}</td>
-                <td style={{ color: '#888' }}>{c.phone}</td>
-                <td>{c.commune}</td>
-                <td>{c.missions}</td>
-                <td style={{ color: '#1D9E75', fontWeight: 600 }}>{c.depenses.toLocaleString('fr-FR')} FCFA</td>
-                <td style={{ color: '#888' }}>{c.date}</td>
-                <td>
-                  <button className="btn btn-secondary" style={{ fontSize: 12, padding: '4px 10px' }}>Voir</button>
-                </td>
+        {loading && <p style={{ textAlign: 'center', color: '#888' }}>Chargement des clients...</p>}
+        {erreur && <p style={{ textAlign: 'center', color: '#E74C3C' }}>{erreur}</p>}
+        {!loading && !erreur && (
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Telephone</th>
+                <th>Commune</th>
+                <th>Statut</th>
+                <th>Inscrit le</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtres.length === 0 && (
+                <tr><td colSpan={5} style={{ textAlign: 'center', color: '#aaa', padding: 24 }}>Aucun client trouve</td></tr>
+              )}
+              {filtres.map(c => (
+                <tr key={c.id}>
+                  <td style={{ fontWeight: 600 }}>
+                    {c.full_name || ((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-'}
+                  </td>
+                  <td style={{ color: '#888' }}>{c.phone || '-'}</td>
+                  <td>{c.commune || '-'}</td>
+                  <td>
+                    <span style={{
+                      backgroundColor: c.statut === 'actif' ? '#E1F5EE' : '#FEF0EE',
+                      color: c.statut === 'actif' ? '#0F6E56' : '#E74C3C',
+                      padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600
+                    }}>
+                      {c.statut || 'inconnu'}
+                    </span>
+                  </td>
+                  <td style={{ color: '#888' }}>{formatDate(c.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
