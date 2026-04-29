@@ -3,34 +3,49 @@ import React, { useState, useEffect } from 'react';
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
 function ModalClient({ client, onClose }) {
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (!client) return;
+    setLoadingStats(true);
+    fetch(API_URL + '/api/admin/clients/' + client.id + '/stats')
+      .then(r => r.json())
+      .then(data => { if (data.success) setStats(data.stats); })
+      .catch(() => {})
+      .finally(() => setLoadingStats(false));
+  }, [client]);
+
   if (!client) return null;
+
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 32, width: 480, maxWidth: '90vw', position: 'relative' }}>
-        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#888' }}>✕</button>
+      <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 32, width: 520, maxWidth: '90vw', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#888' }}>x</button>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
           <div style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#E1F5EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 700, color: '#0F6E56' }}>
             {(client.full_name || 'C').charAt(0).toUpperCase()}
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: 20 }}>{client.full_name || (client.prenom + ' ' + client.nom)}</h2>
+            <h2 style={{ margin: 0, fontSize: 20 }}>{client.full_name || ((client.prenom || '') + ' ' + (client.nom || ''))}</h2>
             <span style={{ backgroundColor: client.statut === 'actif' ? '#E1F5EE' : '#FEF0EE', color: client.statut === 'actif' ? '#0F6E56' : '#E74C3C', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
               {client.statut || 'inconnu'}
             </span>
           </div>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Informations</h3>
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 24 }}>
           <tbody>
             {[
-              ['Téléphone', client.phone],
+              ['Telephone', client.phone],
               ['Email', client.email || '-'],
               ['Commune', client.commune || '-'],
-              ['Prénom', client.prenom || '-'],
+              ['Prenom', client.prenom || '-'],
               ['Nom', client.nom || '-'],
-              ['Vérifié', client.is_verified ? 'Oui' : 'Non'],
-              ['Actif', client.is_active ? 'Oui' : 'Non'],
+              ['Verifie', client.is_verified ? 'Oui' : 'Non'],
               ['Inscrit le', new Date(client.created_at).toLocaleDateString('fr-FR')],
-              ['Dernière MAJ', new Date(client.updated_at).toLocaleDateString('fr-FR')],
             ].map(([label, value]) => (
               <tr key={label} style={{ borderBottom: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '8px 0', color: '#888', fontSize: 13, width: 140 }}>{label}</td>
@@ -39,6 +54,32 @@ function ModalClient({ client, onClose }) {
             ))}
           </tbody>
         </table>
+
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Statistiques</h3>
+        {loadingStats ? (
+          <p style={{ color: '#888', fontSize: 13 }}>Chargement des stats...</p>
+        ) : stats ? (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#0066CC' }}>{stats.total_missions}</div>
+              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Total missions</div>
+            </div>
+            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 28, fontWeight: 700, color: '#1D9E75' }}>{stats.missions_terminees}</div>
+              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Missions terminees</div>
+            </div>
+            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#F5A623' }}>{(stats.montant_total || 0).toLocaleString('fr-FR')} FCFA</div>
+              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Volume total depense</div>
+            </div>
+            <div style={{ backgroundColor: '#E1F5EE', borderRadius: 10, padding: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F6E56' }}>{(stats.commission_trustartisan || 0).toLocaleString('fr-FR')} FCFA</div>
+              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Recettes TrustArtisan</div>
+            </div>
+          </div>
+        ) : (
+          <p style={{ color: '#aaa', fontSize: 13 }}>Aucune mission pour ce client.</p>
+        )}
       </div>
     </div>
   );
