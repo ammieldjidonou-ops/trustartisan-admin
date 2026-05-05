@@ -36,6 +36,8 @@ function ActionModal({ artisan, action, onClose, onConfirm }) {
   const configs = {
     refuser: { titre: "Refuser le dossier", couleur: "#dc3545", label: "Refuser", placeholder: "Ex: Piece d identite illisible. Merci de retransmettre une photo claire...", obligatoire: true },
     suspendre: { titre: "Suspendre le compte", couleur: "#fd7e14", label: "Suspendre", placeholder: "Ex: Plusieurs signalements recus...", obligatoire: true },
+    supprimer: { titre: "Supprimer definitivement", couleur: "#E74C3C", label: "Supprimer", placeholder: "Raison de la suppression...", obligatoire: true },
+    supprimer: { titre: "Supprimer definitivement", couleur: "#E74C3C", label: "Supprimer", placeholder: "Raison de la suppression...", obligatoire: true },
     valider: { titre: "Valider le dossier", couleur: "#1D9E75", label: "Valider", placeholder: "", obligatoire: false },
     reactiver: { titre: "Reactiver le compte", couleur: "#1D9E75", label: "Reactiver", placeholder: "", obligatoire: false },
   };
