@@ -156,12 +156,5 @@ function DossierModal({ artisan, onClose, onAction }) {
           )}
           {statut === "actif" && <button style={{ ...styles.btnAction, backgroundColor: "#fd7e14" }} onClick={() => setActionEnCours("suspendre")}>Suspendre le compte</button>}
           {statut === "suspendu" && <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>Reactiver le compte</button>}
-            if (window.confirm('ATTENTION : Supprimer definitivement cet artisan ? Action irreversible.')) {
-              if (window.confirm('Etes-vous vraiment sur ?')) {
-                fetch(API_URL + '/api/admin/artisans/' + artisan.id, { method: 'DELETE' })
-                  .then(r => r.json())
-                  .then(d => { if (d.success) { alert('Artisan supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
-              }
-            }
-          }}>Supprimer definitivement</button>
+          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C' }} onClick={() => { if (window.confirm('Supprimer definitivement cet artisan ?')) { fetch(API_URL + "/api/admin/artisans/" + artisan.id, { method: 'DELETE' }).then(r => r.json()).then(d => { if (d.success) { alert('Artisan supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); }); } }}>Supprimer definitivement</button>
         </div>
