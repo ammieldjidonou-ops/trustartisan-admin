@@ -80,6 +80,34 @@ function ModalClient({ client, onClose }) {
         ) : (
           <p style={{ color: '#aaa', fontSize: 13 }}>Aucune mission pour ce client.</p>
         )}
+
+        <div style={{ marginTop: 24, borderTop: '1px solid #f0f0f0', paddingTop: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Actions administrateur</h3>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button onClick={() => {
+              const action = client.statut === 'actif' ? 'suspendre' : 'reactiver';
+              const msg = action === 'suspendre' ? 'Suspendre ce client ? Il ne pourra plus se connecter.' : 'Reactiver ce client ?';
+              if (window.confirm(msg)) {
+                fetch(API_URL + '/api/admin/clients/' + client.id + '/' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                  .then(r => r.json())
+                  .then(d => { if (d.success) { alert('Client ' + (action === 'suspendre' ? 'suspendu' : 'reactiver') + ' avec succes'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
+              }
+            }} style={{ backgroundColor: client.statut === 'actif' ? '#FEF0EE' : '#E1F5EE', color: client.statut === 'actif' ? '#E74C3C' : '#1D9E75', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              {client.statut === 'actif' ? 'Suspendre le compte' : 'Reactiver le compte'}
+            </button>
+            <button onClick={() => {
+              if (window.confirm('ATTENTION : Supprimer definitivement ce client ? Cette action est irreversible.')) {
+                if (window.confirm('Etes-vous vraiment sur ? Toutes les donnees seront perdues.')) {
+                  fetch(API_URL + '/api/admin/clients/' + client.id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+                    .then(r => r.json())
+                    .then(d => { if (d.success) { alert('Client supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
+                }
+              }
+            }} style={{ backgroundColor: '#fff', color: '#E74C3C', border: '1px solid #E74C3C', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              Supprimer definitivement
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
