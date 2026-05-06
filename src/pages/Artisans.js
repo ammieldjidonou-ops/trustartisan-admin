@@ -151,10 +151,171 @@ function DossierModal({ artisan, onClose, onAction }) {
                       .then(d => { if (d.success) { alert('Artisan supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
                   }
                 }
-              }}>Supprimer definitivement</button>
             </>
           )}
           {statut === "actif" && <button style={{ ...styles.btnAction, backgroundColor: "#fd7e14" }} onClick={() => setActionEnCours("suspendre")}>Suspendre le compte</button>}
           {statut === "suspendu" && <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>Reactiver le compte</button>}
-
+          <button style={{ ...styles.btnAction, backgroundColor: "#E74C3C", marginTop: "8px" }} onClick={() => { if (window.confirm("Supprimer definitivement cet artisan ?")) { fetch(API_URL + "/api/admin/artisans/" + artisan.id, { method: "DELETE" }).then(r => r.json()).then(d => { if (d.success) { alert("Artisan supprime"); onClose(); window.location.reload(); } else alert("Erreur: " + d.error); }); } }}>Supprimer definitivement</button>
         </div>
+          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => {
+            if (window.confirm('ATTENTION : Supprimer definitivement cet artisan ? Action irreversible.')) {
+              if (window.confirm('Etes-vous vraiment sur ?')) {
+                fetch(API_URL + '/api/admin/artisans/' + artisan.id, { method: 'DELETE' })
+                  .then(r => r.json())
+                  .then(d => { if (d.success) { alert('Artisan supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
+              }
+            }
+          }}>Supprimer definitivement</button>
+      </Modal>
+    </>
+  );
+}
+
+function InfoItem({ label, value }) {
+  return (
+    <div style={styles.infoItem}>
+      <span style={styles.infoLabel}>{label}</span>
+      <span style={styles.infoValue}>{value}</span>
+    </div>
+  );
+}
+
+export default function Artisans() {
+  const [artisans, setArtisans] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filtre, setFiltre] = useState("tous");
+  const [recherche, setRecherche] = useState("");
+  const [dossierOuvert, setDossierOuvert] = useState(null);
+
+  useEffect(() => {
+    fetch(API_URL + "/api/admin/artisans")
+      .then(r => r.json())
+      .then(data => { if (data.success) setArtisans(data.artisans); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const handleAction = async (id, action, message) => {
+    try {
+      const r = await fetch(API_URL + "/api/admin/artisans/" + id + "/" + action, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message }),
+      });
+      const data = await r.json();
+      if (data.success) {
+        const newStatut = action === "valider" ? "actif" : action === "refuser" ? "refuse" : action === "suspendre" ? "suspendu" : "actif";
+        setArtisans(prev => prev.map(a => a.id === id ? { ...a, statut: newStatut } : a));
+      }
+    } catch (e) { alert("Erreur reseau"); }
+  };
+
+  const filtres = [
+    { key: "tous", label: "Tous" },
+    { key: "en_attente_validation", label: "En attente" },
+    { key: "actif", label: "Actifs" },
+    { key: "suspendu", label: "Suspendus" },
+  ];
+
+  const artisansFiltres = artisans.filter(a => {
+    const matchFiltre = filtre === "tous" || a.statut === filtre;
+    const matchRecherche = !recherche ||
+      (a.full_name || "").toLowerCase().includes(recherche.toLowerCase()) ||
+      (a.phone || "").includes(recherche) ||
+      (a.primary_specialty || "").toLowerCase().includes(recherche.toLowerCase());
+    return matchFiltre && matchRecherche;
+  });
+
+  if (loading) return <div style={{ padding: "40px", textAlign: "center", color: "#666" }}>Chargement...</div>;
+
+  return (
+    <div style={styles.container}>
+      {dossierOuvert && <DossierModal artisan={dossierOuvert} onClose={() => setDossierOuvert(null)} onAction={handleAction} />}
+      <div style={styles.header}>
+        <h1 style={styles.titre}>Gestion des Artisans</h1>
+        <span style={styles.badge}>{artisans.length} artisans</span>
+      </div>
+      <div style={styles.toolbar}>
+        <input style={styles.search} placeholder="Rechercher par nom, telephone, specialite..." value={recherche} onChange={e => setRecherche(e.target.value)} />
+        <div style={styles.filtres}>
+          {filtres.map(f => (
+            <button key={f.key} style={{ ...styles.filtreBtn, ...(filtre === f.key ? styles.filtreBtnActif : {}) }} onClick={() => setFiltre(f.key)}>{f.label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={styles.tableContainer}>
+        <table style={styles.table}>
+          <thead>
+            <tr style={styles.thead}>
+              <th style={styles.th}>Nom</th>
+              <th style={styles.th}>Telephone</th>
+              <th style={styles.th}>Specialite</th>
+              <th style={styles.th}>Commune</th>
+              <th style={styles.th}>Statut</th>
+              <th style={styles.th}>Date inscription</th>
+              <th style={styles.th}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {artisansFiltres.length === 0
+              ? <tr><td colSpan={7} style={styles.empty}>Aucun artisan trouve</td></tr>
+              : artisansFiltres.map(a => {
+                  const statutInfo = STATUT_COLORS[a.statut] || STATUT_COLORS.en_attente_validation;
+                  return (
+                    <tr key={a.id} style={styles.tr}>
+                      <td style={styles.td}><strong>{a.full_name}</strong></td>
+                      <td style={styles.td}>{a.phone}</td>
+                      <td style={styles.td}>{a.primary_specialty || "-"}</td>
+                      <td style={styles.td}>{a.commune || "-"}</td>
+                      <td style={styles.td}>
+                        <span style={{ ...styles.statut, backgroundColor: statutInfo.bg, color: statutInfo.color }}>{statutInfo.label}</span>
+                      </td>
+                      <td style={styles.td}>{new Date(a.created_at).toLocaleDateString("fr-FR")}</td>
+                      <td style={styles.td}>
+                        <button style={styles.btnVoir} onClick={() => setDossierOuvert(a)}>Voir le dossier</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const styles = {
+  container: { padding: "24px" },
+  header: { display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px" },
+  titre: { fontSize: "24px", fontWeight: "700", color: "#1a1a1a", margin: 0 },
+  badge: { backgroundColor: "#1D9E75", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontSize: "14px" },
+  toolbar: { display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" },
+  search: { flex: 1, minWidth: "200px", padding: "10px 14px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" },
+  filtres: { display: "flex", gap: "8px" },
+  filtreBtn: { padding: "8px 16px", borderRadius: "8px", border: "1px solid #ddd", cursor: "pointer", backgroundColor: "#fff", fontSize: "13px" },
+  filtreBtnActif: { backgroundColor: "#1D9E75", color: "#fff", borderColor: "#1D9E75" },
+  tableContainer: { backgroundColor: "#fff", borderRadius: "12px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" },
+  table: { width: "100%", borderCollapse: "collapse" },
+  thead: { backgroundColor: "#f8f9fa" },
+  th: { padding: "12px 16px", textAlign: "left", fontSize: "13px", fontWeight: "600", color: "#666", borderBottom: "1px solid #eee" },
+  tr: { borderBottom: "1px solid #f0f0f0" },
+  td: { padding: "12px 16px", fontSize: "14px", color: "#333" },
+  statut: { padding: "4px 10px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
+  btnVoir: { backgroundColor: "#1D9E75", color: "#fff", border: "none", padding: "6px 14px", borderRadius: "6px", cursor: "pointer", fontSize: "13px" },
+  empty: { textAlign: "center", padding: "40px", color: "#999" },
+  overlay: { position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+  modal: { backgroundColor: "#fff", borderRadius: "16px", width: "90%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", boxShadow: "0 20px 60px rgba(0,0,0,0.3)" },
+  modalHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid #eee" },
+  modalTitre: { margin: 0, fontSize: "18px", fontWeight: "700" },
+  closeBtn: { background: "none", border: "none", fontSize: "20px", cursor: "pointer", color: "#999", padding: "4px 8px" },
+  modalBody: { padding: "24px" },
+  statutBadge: { padding: "4px 12px", borderRadius: "20px", fontSize: "12px", fontWeight: "600" },
+  infoGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", margin: "20px 0" },
+  infoItem: { display: "flex", flexDirection: "column", gap: "2px" },
+  infoLabel: { fontSize: "11px", fontWeight: "600", color: "#999", textTransform: "uppercase", letterSpacing: "0.5px" },
+  infoValue: { fontSize: "14px", color: "#333" },
+  section: { marginBottom: "16px" },
+  descText: { fontSize: "14px", color: "#555", lineHeight: "1.6", backgroundColor: "#f8f9fa", padding: "12px", borderRadius: "8px" },
+  actionBar: { display: "flex", gap: "12px", marginTop: "24px", paddingTop: "20px", borderTop: "1px solid #eee", flexWrap: "wrap" },
+  btnAction: { color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
+  btnAnnuler: { backgroundColor: "#f8f9fa", color: "#555", border: "1px solid #ddd", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", fontSize: "14px" },
+  label: { display: "block", fontSize: "13px", fontWeight: "600", color: "#555", marginBottom: "8px" },
+  textarea: { width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" },
+};
