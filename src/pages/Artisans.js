@@ -191,17 +191,17 @@ function DossierModal({ artisan, onClose, onAction }) {
           </button>
         )}
         {statut === "suspendu" && (
-          <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>
-            Reactiver le compte
-          </button>
-          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => { if (window.confirm('Supprimer cet artisan ?')) { fetch(API_URL + '/api/admin/artisans/' + artisan.id, { method: 'DELETE' }).then(r => r.json()).then(d => { if (d.success) { alert('Supprime'); onClose(); window.location.reload(); } }); } }}>Supprimer</button>
+          <>
+           <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>
+             Reactiver le compte
+           </button>
+           <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => { if (window.confirm('Supprimer cet artisan ?')) { fetch(API_URL + '/api/admin/artisans/' + artisan.id, { method: 'DELETE' }).then(r => r.json()).then(d => { if (d.success) { alert('Supprime'); onClose(); window.location.reload(); } }); } }}>Supprimer</button>
+          </>
         )}
       </div>
     </Modal>
   );
 }
-
-function InfoItem({ label, value }) {
   return (
     <div style={styles.infoItem}>
       <span style={styles.infoLabel}>{label}</span>
