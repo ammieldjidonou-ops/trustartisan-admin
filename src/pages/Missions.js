@@ -32,7 +32,9 @@ export default function Missions() {
     const matchSearch = !search ||
       (m.title || '').toLowerCase().includes(search.toLowerCase()) ||
       (m.client?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
-      (m.artisan?.full_name || '').toLowerCase().includes(search.toLowerCase());
+      (m.artisan?.full_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (m.specialty || '').toLowerCase().includes(search.toLowerCase()) ||
+      (m.commune || '').toLowerCase().includes(search.toLowerCase());
     const matchFiltre = filtre === 'tous' || m.status === filtre;
     return matchSearch && matchFiltre;
   });
