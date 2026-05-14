@@ -19,6 +19,8 @@ export default function Missions() {
   const [filtre, setFiltre] = useState('tous');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
+  const [showExpirees, setShowExpirees] = useState(false);
+  const [annulationEnCours, setAnnulationEnCours] = useState(false);
 
   useEffect(() => {
     fetch(API_URL + '/api/admin/missions')
@@ -47,13 +49,49 @@ export default function Missions() {
     total_fcfa: missions.filter(m => m.status === 'validated').reduce((s, m) => s + (m.quote_amount_fcfa || 0), 0),
   };
 
+  const maintenant = new Date();
+  const missionsExpirees = missions.filter(m => {
+    if (m.status !== 'posted') return false;
+    const joursEcoules = (maintenant - new Date(m.created_at)) / (1000 * 60 * 60 * 24);
+    return joursEcoules > 5;
+  });
+
+  const annulerMissionsExpirees = async (ids) => {
+    if (!window.confirm('Annuler ' + ids.length + ' mission(s) expirée(s) ? Les clients recevront une notification.')) return;
+    setAnnulationEnCours(true);
+    try {
+      for (const id of ids) {
+        await fetch(API_URL + '/api/missions/' + id + '/annuler', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ raison: 'Mission expiree automatiquement - Aucun artisan disponible apres 5 jours. Merci de renouveler votre demande.' })
+        });
+      }
+      setMissions(prev => prev.map(m => ids.includes(m.id) ? { ...m, status: 'cancelled' } : m));
+      setShowExpirees(false);
+      alert('Missions annulées avec succès. Les clients ont été notifiés.');
+    } catch (e) {
+      alert('Erreur lors de l annulation');
+    } finally {
+      setAnnulationEnCours(false);
+    }
+  };
+
   const filtres = ['tous', 'posted', 'in_progress', 'completed', 'validated', 'cancelled', 'disputed'];
 
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Gestion des Missions</h1>
-        <p style={{ color: '#888', fontSize: 14, marginTop: 4 }}>{missions.length} missions au total</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
+          <p style={{ color: '#888', fontSize: 14, margin: 0 }}>{missions.length} missions au total</p>
+          {missionsExpirees.length > 0 && (
+            <button onClick={() => setShowExpirees(true)}
+              style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              ⚠️ {missionsExpirees.length} mission(s) expirée(s) &gt; 5 jours
+            </button>
+          )}
+        </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
@@ -124,6 +162,52 @@ export default function Missions() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {showExpirees && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: 16, padding: 32, width: 680, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button onClick={() => setShowExpirees(false)} style={{ position: 'absolute', top: 16, right: 16, background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: '#888' }}>✕</button>
+            <h2 style={{ margin: '0 0 8px', fontSize: 18, color: '#E74C3C' }}>⚠️ Missions expirées ({missionsExpirees.length})</h2>
+            <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Ces missions sont en attente depuis plus de 5 jours sans artisan assigné. Vous pouvez les annuler en masse ou individuellement.</p>
+            <div style={{ marginBottom: 16 }}>
+              <button onClick={() => annulerMissionsExpirees(missionsExpirees.map(m => m.id))} disabled={annulationEnCours}
+                style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginRight: 10 }}>
+                {annulationEnCours ? 'Annulation...' : 'Tout annuler (' + missionsExpirees.length + ')'}
+              </button>
+            </div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#f8f9fa' }}>
+                <tr>
+                  {['Mission', 'Client', 'Commune', 'Jours écoulés', 'Action'].map(h => (
+                    <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#666', borderBottom: '1px solid #eee' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {missionsExpirees.map(m => {
+                  const jours = Math.floor((maintenant - new Date(m.created_at)) / (1000 * 60 * 60 * 24));
+                  return (
+                    <tr key={m.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 600 }}>{m.title}</td>
+                      <td style={{ padding: '10px 12px', fontSize: 13 }}>{m.client?.full_name || '-'}</td>
+                      <td style={{ padding: '10px 12px', fontSize: 13 }}>{m.commune || '-'}</td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <span style={{ backgroundColor: '#FEF0EE', color: '#E74C3C', padding: '3px 10px', borderRadius: 10, fontSize: 12, fontWeight: 700 }}>{jours} jours</span>
+                      </td>
+                      <td style={{ padding: '10px 12px' }}>
+                        <button onClick={() => annulerMissionsExpirees([m.id])} disabled={annulationEnCours}
+                          style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>
+                          Annuler
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
