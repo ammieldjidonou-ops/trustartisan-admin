@@ -83,6 +83,7 @@ export default function App() {
             <Route path="/collaborateurs" element={<Collaborateurs admin={admin} />} />
             <Route path="/signalements" element={<Signalements admin={admin} />} />
             <Route path="/notifications" element={<Notifications admin={admin} />} />
+            <Route path="/comptabilite" element={<Comptabilite admin={admin} />} />
           </Routes>
         </main>
       </div>
