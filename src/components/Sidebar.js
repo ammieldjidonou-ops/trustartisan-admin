@@ -90,7 +90,34 @@ export default function Sidebar({ open, setOpen, admin, onLogout }) {
         ))}
       </nav>
 
+      {showMdp && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ backgroundColor: '#fff', borderRadius: 16, padding: 32, width: 380, maxWidth: '90vw' }}>
+            <h2 style={{ margin: '0 0 20px', fontSize: 18, color: '#333' }}>🔒 Modifier le mot de passe</h2>
+            {[['Ancien mot de passe', ancienMdp, setAncienMdp], ['Nouveau mot de passe', nouveauMdp, setNouveauMdp], ['Confirmer le nouveau', confirmMdp, setConfirmMdp]].map(([label, val, setter], i) => (
+              <div key={i} style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 12, color: '#888', marginBottom: 5, fontWeight: 600 }}>{label}</label>
+                <input type='password' value={val} onChange={e => setter(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' }} />
+              </div>
+            ))}
+            {msgMdp && <p style={{ color: msgMdp.includes('modifie') ? '#1D9E75' : '#E74C3C', fontSize: 13, margin: '0 0 12px' }}>{msgMdp}</p>}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button onClick={() => { setShowMdp(false); setMsgMdp(''); }} style={{ flex: 1, padding: 10, borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer', backgroundColor: '#f5f5f5', fontSize: 13 }}>Annuler</button>
+              <button onClick={changerMdp} disabled={loadingMdp} style={{ flex: 1, padding: 10, borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: '#1D9E75', color: '#fff', fontWeight: 600, fontSize: 13 }}>
+                {loadingMdp ? 'En cours...' : 'Modifier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ padding: 16, borderTop: '1px solid rgba(255,255,255,0.15)' }}>
+        {open && (
+          <button onClick={() => setShowMdp(true)} style={{ width: '100%', padding: '7px', backgroundColor: 'transparent', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', marginBottom: 8 }}>
+            🔒 Modifier mot de passe
+          </button>
+        )}
         {open ? (
           <button onClick={onLogout} style={{ width: '100%', padding: '8px', backgroundColor: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 8, color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 500 }}>
             Deconnexion
