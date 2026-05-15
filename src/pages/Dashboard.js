@@ -151,7 +151,22 @@ export default function Dashboard() {
 
   const toggleCategorie = (id) => setCategories(categories.map(c => c.id === id ? { ...c, active: !c.active } : c));
   const toggleCommune = (id) => setCommunes(communes.map(c => c.id === id ? { ...c, active: !c.active } : c));
-  const toggleMonetisation = (key) => setMonetisation({ ...monetisation, [key]: !monetisation[key] });
+  const toggleMonetisation = (key) => {
+    const newVal = !monetisation[key];
+    let updates = { ...monetisation, [key]: newVal };
+    if (key === 'periode_gratuite' && newVal) {
+      // Activation : enregistrer date debut + reset compteur 14 jours
+      updates.date_activation = new Date().toISOString();
+      updates.jours_restants = 14;
+    }
+    if (key === 'periode_gratuite' && !newVal) {
+      // Désactivation : calculer jours restants réels
+      const debut = monetisation.date_activation ? new Date(monetisation.date_activation) : new Date();
+      const joursEcoules = Math.floor((new Date() - debut) / (1000 * 60 * 60 * 24));
+      updates.jours_restants = Math.max(0, 14 - joursEcoules);
+    }
+    setMonetisation(updates);
+  };
 
   const sauvegarderFiltres = async () => {
     setSaving(true);
@@ -203,7 +218,12 @@ export default function Dashboard() {
             <span style={{ fontSize: 18 }}>⏳</span>
             <div>
               <div style={{ fontWeight: 600, color: '#854F0B', fontSize: 13 }}>Periode gratuite</div>
-              <div style={{ color: '#F5A623', fontSize: 12 }}>{monetisation.jours_restants} jours restants</div>
+              <div style={{ color: monetisation.jours_restants > 3 ? '#F5A623' : '#E74C3C', fontSize: 12, fontWeight: 600 }}>
+                {monetisation.jours_restants > 0 ? monetisation.jours_restants + ' jours restants' : 'Expiree - Activez la monetisation !'}
+              </div>
+              {monetisation.date_activation && (
+                <div style={{ color: '#aaa', fontSize: 11 }}>Activee le {new Date(monetisation.date_activation).toLocaleDateString('fr-FR')}</div>
+              )}
             </div>
           </div>
         )}
