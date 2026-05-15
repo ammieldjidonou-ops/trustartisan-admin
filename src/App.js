@@ -9,6 +9,7 @@ import Paiements from './pages/Paiements';
 import Collaborateurs from './pages/Collaborateurs';
 import Signalements from './pages/Signalements';
 import Notifications from './pages/Notifications';
+import Comptabilite from './pages/Comptabilite';
 import Login from './pages/Login';
 import './App.css';
 
