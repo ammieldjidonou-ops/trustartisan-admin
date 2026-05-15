@@ -19,6 +19,30 @@ const ROLE_LABELS = {
 };
 
 export default function Sidebar({ open, setOpen, admin, onLogout }) {
+  const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
+  const [showMdp, setShowMdp] = React.useState(false);
+  const [ancienMdp, setAncienMdp] = React.useState('');
+  const [nouveauMdp, setNouveauMdp] = React.useState('');
+  const [confirmMdp, setConfirmMdp] = React.useState('');
+  const [msgMdp, setMsgMdp] = React.useState('');
+  const [loadingMdp, setLoadingMdp] = React.useState(false);
+  const changerMdp = async () => {
+    if (!ancienMdp || !nouveauMdp || !confirmMdp) { setMsgMdp('Tous les champs sont requis'); return; }
+    if (nouveauMdp !== confirmMdp) { setMsgMdp('Les mots de passe ne correspondent pas'); return; }
+    if (nouveauMdp.length < 8) { setMsgMdp('Minimum 8 caracteres'); return; }
+    setLoadingMdp(true);
+    try {
+      const token = localStorage.getItem('admin_token');
+      const r = await fetch(API_URL + '/api/admin-auth/changer-mot-de-passe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ ancien_mdp: ancienMdp, nouveau_mdp: nouveauMdp })
+      });
+      const data = await r.json();
+      if (data.success) { setMsgMdp('Mot de passe modifie !'); setTimeout(() => { setShowMdp(false); setAncienMdp(''); setNouveauMdp(''); setConfirmMdp(''); setMsgMdp(''); }, 2000); }
+      else { setMsgMdp(data.error || 'Erreur'); }
+    } catch (e) { setMsgMdp('Erreur serveur'); }
+    setLoadingMdp(false);
+  };
   const role = admin?.role || 'validateur';
   const menuFiltre = MENU.filter(item => item.roles.includes(role));
 
