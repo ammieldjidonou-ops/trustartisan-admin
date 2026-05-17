@@ -46,6 +46,7 @@ function ModalClient({ client, onClose }) {
               ['Nom', client.nom || '-'],
               ['Verifie', client.is_verified ? 'Oui' : 'Non'],
               ['Inscrit le', new Date(client.created_at).toLocaleDateString('fr-FR')],
+              ['Genre', client.genre || '-'],
             ].map(([label, value]) => (
               <tr key={label} style={{ borderBottom: '1px solid #f0f0f0' }}>
                 <td style={{ padding: '8px 0', color: '#888', fontSize: 13, width: 140 }}>{label}</td>

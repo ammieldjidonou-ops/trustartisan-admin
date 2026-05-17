@@ -103,6 +103,7 @@ function DossierModal({ artisan, onClose, onAction }) {
           <InfoItem label="Commune" value={artisan.commune || "-"} />
           <InfoItem label="Specialite" value={artisan.primary_specialty || "-"} />
           <InfoItem label="Date inscription" value={new Date(artisan.created_at).toLocaleDateString("fr-FR")} />
+          <InfoItem label="Genre" value={artisan.genre || "-"} />
           <InfoItem label="Verifie" value={artisan.is_verified ? "Oui" : "Non"} />
           <InfoItem label="Email" value={artisan.email || "-"} />
         </div>
