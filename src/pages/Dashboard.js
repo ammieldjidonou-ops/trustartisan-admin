@@ -72,9 +72,6 @@ export default function Dashboard() {
   const [statsMissions, setStatsMissions] = useState(null);
   const [missionsParMois, setMissionsParMois] = useState([]);
   const [revenus, setRevenus] = useState({ total: 0, ce_mois: 0 });
-  const [statsMissions, setStatsMissions] = useState(null);
-  const [missionsParMois, setMissionsParMois] = useState([]);
-  const [revenus, setRevenus] = useState({ total: 0, ce_mois: 0 });
   const [artisansAttente, setArtisansAttente] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
@@ -114,17 +111,6 @@ export default function Dashboard() {
       setArtisansAttente(artisans.filter(a => a.statut === 'en_attente_validation'));
     }).catch(e => console.error(e))
       .finally(() => setLoadingStats(false));
-
-    // Charger stats globales (missions, revenus)
-    fetch(API_URL + '/api/admin/stats-dashboard')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          setStatsMissions(d.stats_missions);
-          setMissionsParMois(d.missions_par_mois || []);
-          setRevenus(d.revenus || { total: 0, ce_mois: 0 });
-        }
-      }).catch(() => {});
 
     // Charger stats globales (missions, revenus)
     fetch(API_URL + '/api/admin/stats-dashboard')
