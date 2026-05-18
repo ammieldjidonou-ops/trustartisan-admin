@@ -69,6 +69,12 @@ export default function Dashboard() {
 
   // Stats reelles
   const [stats, setStats] = useState(null);
+  const [statsMissions, setStatsMissions] = useState(null);
+  const [missionsParMois, setMissionsParMois] = useState([]);
+  const [revenus, setRevenus] = useState({ total: 0, ce_mois: 0 });
+  const [statsMissions, setStatsMissions] = useState(null);
+  const [missionsParMois, setMissionsParMois] = useState([]);
+  const [revenus, setRevenus] = useState({ total: 0, ce_mois: 0 });
   const [artisansAttente, setArtisansAttente] = useState([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [actionMsg, setActionMsg] = useState('');
@@ -108,6 +114,28 @@ export default function Dashboard() {
       setArtisansAttente(artisans.filter(a => a.statut === 'en_attente_validation'));
     }).catch(e => console.error(e))
       .finally(() => setLoadingStats(false));
+
+    // Charger stats globales (missions, revenus)
+    fetch(API_URL + '/api/admin/stats-dashboard')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setStatsMissions(d.stats_missions);
+          setMissionsParMois(d.missions_par_mois || []);
+          setRevenus(d.revenus || { total: 0, ce_mois: 0 });
+        }
+      }).catch(() => {});
+
+    // Charger stats globales (missions, revenus)
+    fetch(API_URL + '/api/admin/stats-dashboard')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setStatsMissions(d.stats_missions);
+          setMissionsParMois(d.missions_par_mois || []);
+          setRevenus(d.revenus || { total: 0, ce_mois: 0 });
+        }
+      }).catch(() => {});
   }, []);
 
   const toggleMaintenance = async () => {
@@ -284,7 +312,7 @@ export default function Dashboard() {
                 <div className="card">
                   <h3 style={{ marginBottom: 16, fontSize: 15 }}>Missions par mois</h3>
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={DATA_MISSIONS}>
+                    <LineChart data={missionsParMois}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                       <XAxis dataKey="mois" tick={{ fontSize: 12 }} />
                       <YAxis tick={{ fontSize: 12 }} />
@@ -292,7 +320,7 @@ export default function Dashboard() {
                       <Line type="monotone" dataKey="missions" stroke="#1D9E75" strokeWidth={2} dot={{ fill: '#1D9E75' }} />
                     </LineChart>
                   </ResponsiveContainer>
-                  <p style={{ fontSize: 11, color: '#bbb', textAlign: 'center', marginTop: 8 }}>Disponible quand les missions seront actives</p>
+                  
                 </div>
                 <div className="card">
                   <h3 style={{ marginBottom: 16, fontSize: 15 }}>Repartition artisans / clients</h3>
