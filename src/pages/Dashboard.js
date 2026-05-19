@@ -3,10 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
-const DATA_MISSIONS = [
-  { mois: 'Jan', missions: 0 }, { mois: 'Fev', missions: 0 }, { mois: 'Mar', missions: 0 },
-  { mois: 'Avr', missions: 0 }, { mois: 'Mai', missions: 0 }, { mois: 'Juin', missions: 0 },
-];
+
 
 
 const CATEGORIES_CONFIG = [
@@ -214,6 +211,9 @@ export default function Dashboard() {
   const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR') : '-';
 
   const STATS_CARDS = stats ? [
+    { label: 'Missions totales', value: statsMissions?.total || 0, icon: '📋', color: '#9B59B6', bg: '#F4ECF7', sub: (statsMissions?.ce_mois || 0) + ' ce mois' },
+    { label: 'Missions en cours', value: (statsMissions?.posted || 0) + (statsMissions?.in_progress || 0), icon: '⏱️', color: '#3498DB', bg: '#EBF5FB', sub: (statsMissions?.completed || 0) + ' terminees' },
+    { label: 'Revenus du mois', value: revenus.ce_mois.toLocaleString('fr-FR') + ' F', icon: '💰', color: '#16A085', bg: '#E8F8F5', sub: revenus.total.toLocaleString('fr-FR') + ' F au total' },
     { label: 'Artisans actifs', value: stats.artisans_actifs, icon: '🛠️', color: '#1D9E75', bg: '#E1F5EE', sub: stats.artisans_total + ' au total' },
     { label: 'Clients inscrits', value: stats.clients_total, icon: '👤', color: '#0066CC', bg: '#EEF4FF', sub: stats.clients_actifs + ' actifs' },
     { label: 'En attente validation', value: stats.en_attente, icon: '⏳', color: '#F5A623', bg: '#FEF6E7', sub: 'Dossiers a traiter' },
