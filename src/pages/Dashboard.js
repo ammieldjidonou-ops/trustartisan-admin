@@ -52,7 +52,7 @@ const COMMUNES_CONFIG = [
 const MONETISATION_CONFIG = {
   periode_gratuite: true, jours_restants: 14,
   abonnement_artisan_actif: false, deblocage_contact_actif: false, commission_actif: false,
-  prix_contact_unique: 500, prix_abonnement_mensuel: 5000, taux_commission: 10,
+  prix_contact_unique: 500, prix_abonnement_mensuel: 5000, taux_commission: 8,
 };
 
 export default function Dashboard() {
