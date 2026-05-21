@@ -87,7 +87,6 @@ export default function Paiements() {
 
   const totalValide = missions.filter(m => m.status === 'validated').reduce((s, m) => s + (m.quote_amount_fcfa || 0), 0);
   const commission = Math.round(totalValide * 0.08);
-  const nbValide = missions.filter(m => m.status === 'validated').length;
 
   const enSequestre = sequestres.filter(s => s.payment_status === 'en_sequestre');
   const montantEnSequestre = enSequestre.reduce((s, m) => s + (m.montant_paye_fcfa || 0), 0);
