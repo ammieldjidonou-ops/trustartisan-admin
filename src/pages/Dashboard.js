@@ -48,9 +48,8 @@ const COMMUNES_CONFIG = [
   { id: 21, nom: 'Nikki', active: false, region: 'Borgou' },
   { id: 22, nom: 'Malanville', active: false, region: 'Alibori' },
 ];
-
 const MONETISATION_CONFIG = {
-  periode_gratuite: true, jours_restants: 14,
+  periode_gratuite: true,
   abonnement_artisan_actif: false, deblocage_contact_actif: false, commission_actif: false,
   prix_contact_unique: 500, prix_abonnement_mensuel: 5000, taux_commission: 8,
 };
@@ -163,20 +162,8 @@ export default function Dashboard() {
   const toggleCategorie = (id) => setCategories(categories.map(c => c.id === id ? { ...c, active: !c.active } : c));
   const toggleCommune = (id) => setCommunes(communes.map(c => c.id === id ? { ...c, active: !c.active } : c));
   const toggleMonetisation = (key) => {
-    const newVal = !monetisation[key];
-    let updates = { ...monetisation, [key]: newVal };
-    if (key === 'periode_gratuite' && newVal) {
-      // Activation : enregistrer date debut + reset compteur 14 jours
-      updates.date_activation = new Date().toISOString();
-      updates.jours_restants = 14;
-    }
-    if (key === 'periode_gratuite' && !newVal) {
-      // Désactivation : calculer jours restants réels
-      const debut = monetisation.date_activation ? new Date(monetisation.date_activation) : new Date();
-      const joursEcoules = Math.floor((new Date() - debut) / (1000 * 60 * 60 * 24));
-      updates.jours_restants = Math.max(0, 14 - joursEcoules);
-    }
-    setMonetisation(updates);
+    // Le backend gere la date de fin et le decompte ; le dashboard ne fait que basculer la valeur.
+    setMonetisation({ ...monetisation, [key]: !monetisation[key] });
   };
 
   const sauvegarderFiltres = async () => {
@@ -228,16 +215,17 @@ export default function Dashboard() {
           <p style={{ color: '#888', fontSize: 14 }}>TrustArtisan Admin - Bienvenue</p>
         </div>
         {monetisation.periode_gratuite && (
-          <div style={{ background: '#FEF6E7', border: '1px solid #F5A623', borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 18 }}>⏳</span>
+          <div style={{ background: monetisation.gratuite_expiree ? '#FEECEC' : '#FEF6E7', border: '1px solid ' + (monetisation.gratuite_expiree ? '#E74C3C' : '#F5A623'), borderRadius: 10, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>{monetisation.gratuite_expiree ? '\u26A0\uFE0F' : '\u23F3'}</span>
             <div>
-              <div style={{ fontWeight: 600, color: '#854F0B', fontSize: 13 }}>Periode gratuite</div>
-              <div style={{ color: monetisation.jours_restants > 3 ? '#F5A623' : '#E74C3C', fontSize: 12, fontWeight: 600 }}>
-                {monetisation.jours_restants > 0 ? monetisation.jours_restants + ' jours restants' : 'Expiree - Activez la monetisation !'}
+              <div style={{ fontWeight: 600, color: monetisation.gratuite_expiree ? '#A8200F' : '#854F0B', fontSize: 13 }}>
+                {monetisation.gratuite_expiree ? 'Periode gratuite expiree' : 'Periode gratuite'}
               </div>
-              {monetisation.date_activation && (
-                <div style={{ color: '#aaa', fontSize: 11 }}>Activee le {new Date(monetisation.date_activation).toLocaleDateString('fr-FR')}</div>
-              )}
+              <div style={{ color: monetisation.gratuite_expiree ? '#E74C3C' : (monetisation.jours_restants > 3 ? '#F5A623' : '#E74C3C'), fontSize: 12, fontWeight: 600 }}>
+                {monetisation.gratuite_expiree
+                  ? 'Activez la monetisation ou prolongez la periode gratuite'
+                  : (monetisation.jours_restants || 0) + ' jour(s) restant(s)'}
+              </div>
             </div>
           </div>
         )}
