@@ -167,8 +167,18 @@ export default function Dashboard() {
   const toggleCategorie = (id) => setCategories(categories.map(c => c.id === id ? { ...c, active: !c.active } : c));
   const toggleCommune = (id) => setCommunes(communes.map(c => c.id === id ? { ...c, active: !c.active } : c));
   const toggleMonetisation = (key) => {
-    // Le backend gere la date de fin et le decompte ; le dashboard ne fait que basculer la valeur.
-    setMonetisation({ ...monetisation, [key]: !monetisation[key] });
+    const newVal = !monetisation[key];
+    const updates = { ...monetisation, [key]: newVal };
+    // Regle d'exclusivite : periode gratuite et monetisation payante ne coexistent pas.
+    if (key === 'periode_gratuite' && newVal) {
+      updates.commission_actif = false;
+      updates.deblocage_contact_actif = false;
+      updates.abonnement_artisan_actif = false;
+    }
+    if ((key === 'commission_actif' || key === 'deblocage_contact_actif' || key === 'abonnement_artisan_actif') && newVal) {
+      updates.periode_gratuite = false;
+    }
+    setMonetisation(updates);
   };
 
   const sauvegarderFiltres = async () => {
