@@ -77,9 +77,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetch(API_URL + '/api/config').then(r => r.json()).then(data => {
-      if (data.success && data.config.maintenance) {
-        setMaintenance(data.config.maintenance.actif || false);
-        setMaintenanceMsg(data.config.maintenance.message || 'Application en maintenance. Revenez bientot !');
+      if (data.success && data.config) {
+        if (data.config.maintenance) {
+          setMaintenance(data.config.maintenance.actif || false);
+          setMaintenanceMsg(data.config.maintenance.message || 'Application en maintenance. Revenez bientot !');
+        }
+        if (data.config.monetisation) {
+          setMonetisation(data.config.monetisation);
+        }
       }
     }).catch(() => {});
     Promise.all([
