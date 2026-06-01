@@ -31,14 +31,16 @@ export default function App() {
         if (data.success) {
           setAdmin(data.admin);
         } else {
+          // Token invalide ou expire : deconnecter
           localStorage.removeItem('admin_token');
           localStorage.removeItem('admin_user');
         }
       })
       .catch(() => {
-        // Serveur inaccessible - utiliser le cache local
-        const cached = localStorage.getItem('admin_user');
-        if (cached) setAdmin(JSON.parse(cached));
+        // Securite : si la verification echoue (reseau ou serveur),
+        // on ne fait JAMAIS confiance au cache local. On deconnecte.
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
       })
       .finally(() => setLoading(false));
   }, []);
