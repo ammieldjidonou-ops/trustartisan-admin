@@ -25,6 +25,9 @@ export default function Paiements() {
   const [search, setSearch] = useState('');
   const [onglet, setOnglet] = useState('sequestres');
   const [actionMsg, setActionMsg] = useState('');
+  const [payouts, setPayouts] = useState([]);
+  const [compteursPayouts, setCompteursPayouts] = useState({ en_cours: 0, succes: 0, echec: 0, total_verse_fcfa: 0 });
+  const [filtrePayout, setFiltrePayout] = useState('tous');
 
   const chargerDonnees = () => {
     fetch(API_URL + '/api/admin/missions')
@@ -40,6 +43,49 @@ export default function Paiements() {
       .then(data => { if (data.success) setSequestres(data.sequestres || []); })
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  const chargerPayouts = (statut = 'tous') => {
+    fetch(API_URL + '/api/admin/payouts?statut=' + statut)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setPayouts(data.payouts || []);
+          setCompteursPayouts(data.compteurs || { en_cours: 0, succes: 0, echec: 0, total_verse_fcfa: 0 });
+        }
+      })
+      .catch(() => {});
+  };
+
+  const verifierStatutPayout = async (id) => {
+    try {
+      const resp = await fetch(API_URL + '/api/admin/missions/' + id + '/payout-status');
+      const data = await resp.json();
+      if (data.success) {
+        setActionMsg('Statut MTN : ' + data.statut_mtn + ' (local : ' + data.statut_local + ')');
+        chargerPayouts(filtrePayout);
+      } else {
+        setActionMsg('Erreur : ' + (data.error || 'verification impossible'));
+      }
+      setTimeout(() => setActionMsg(''), 5000);
+    } catch (e) { setActionMsg('Erreur serveur'); }
+  };
+
+  const relancerPayout = async (id) => {
+    if (!window.confirm('Relancer le versement vers l artisan via MTN Disbursement ?')) return;
+    try {
+      const resp = await fetch(API_URL + '/api/admin/missions/' + id + '/retry-payout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({})
+      });
+      const data = await resp.json();
+      if (data.success) {
+        setActionMsg('Versement relance. Reference : ' + (data.payout_reference || '-'));
+        chargerPayouts(filtrePayout);
+      } else {
+        setActionMsg('Erreur : ' + (data.error || 'relance impossible'));
+      }
+      setTimeout(() => setActionMsg(''), 5000);
+    } catch (e) { setActionMsg('Erreur serveur'); }
   };
 
   useEffect(() => { chargerDonnees(); }, []);
@@ -117,8 +163,8 @@ export default function Paiements() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['sequestres', 'Sequestres a gerer'], ['transactions', 'Toutes les transactions']].map(([k, label]) => (
-          <button key={k} onClick={() => setOnglet(k)}
+        {[['sequestres', 'Sequestres a gerer'], ['payouts', 'Versements artisans'], ['transactions', 'Toutes les transactions']].map(([k, label]) => (
+          <button key={k} onClick={() => { setOnglet(k); if (k === 'payouts') chargerPayouts(filtrePayout); }}
             style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
               backgroundColor: onglet === k ? '#1D9E75' : '#f0f0f0', color: onglet === k ? '#fff' : '#555' }}>
             {label}
@@ -175,6 +221,90 @@ export default function Paiements() {
             </tbody>
           </table>
         </div>
+      ) : onglet === 'payouts' ? (
+        <>
+          {/* Compteurs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16, marginBottom: 20 }}>
+            <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Versements en cours</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#0066CC' }}>{compteursPayouts.en_cours}</div>
+            </div>
+            <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Versements reussis</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1D9E75' }}>{compteursPayouts.succes}</div>
+            </div>
+            <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Versements en echec</div>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#E74C3C' }}>{compteursPayouts.echec}</div>
+            </div>
+            <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 6 }}>Total verse aux artisans</div>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F6E56' }}>{(compteursPayouts.total_verse_fcfa || 0).toLocaleString('fr-FR')} FCFA</div>
+            </div>
+          </div>
+          {/* Filtres */}
+          <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 20, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[['tous', 'Tous'], ['en_cours', 'En cours'], ['succes', 'Reussis'], ['echec', 'En echec']].map(([k, label]) => (
+              <button key={k} onClick={() => { setFiltrePayout(k); chargerPayouts(k); }}
+                style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid #ddd', cursor: 'pointer', fontSize: 12,
+                  backgroundColor: filtrePayout === k ? '#1D9E75' : '#fff', color: filtrePayout === k ? '#fff' : '#555', fontWeight: filtrePayout === k ? 700 : 400 }}>
+                {label}
+              </button>
+            ))}
+            <button onClick={() => chargerPayouts(filtrePayout)}
+              style={{ marginLeft: 'auto', padding: '6px 14px', borderRadius: 8, border: '1px solid #1D9E75', backgroundColor: '#fff', color: '#1D9E75', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              Rafraichir
+            </button>
+          </div>
+          {/* Tableau */}
+          <div style={{ backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead style={{ backgroundColor: '#f8f9fa' }}>
+                <tr>
+                  {['Mission', 'Artisan', 'Montant', 'Statut', 'Reference MTN', 'Date', 'Actions'].map(h => (
+                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#666', borderBottom: '1px solid #eee' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {payouts.length === 0 ? (
+                  <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>Aucun versement a afficher</td></tr>
+                ) : payouts.map(p => {
+                  const statutCfg = p.payout_status === 'succes'
+                    ? { label: 'Reussi', color: '#1D9E75', bg: '#E1F5EE' }
+                    : p.payout_status === 'echec'
+                      ? { label: 'Echec', color: '#E74C3C', bg: '#FEF0EE' }
+                      : { label: 'En cours', color: '#0066CC', bg: '#EEF4FF' };
+                  return (
+                    <tr key={p.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600 }}>{p.title || '-'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 13 }}>{p.artisan?.full_name || '-'}<br/><span style={{ fontSize: 11, color: '#888' }}>{p.artisan?.phone || ''}</span></td>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1D9E75' }}>{p.montant_artisan_fcfa ? p.montant_artisan_fcfa.toLocaleString('fr-FR') + ' FCFA' : '-'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span style={{ backgroundColor: statutCfg.bg, color: statutCfg.color, padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{statutCfg.label}</span>
+                        {p.payout_erreur && <div style={{ fontSize: 10, color: '#E74C3C', marginTop: 4, maxWidth: 200 }}>{p.payout_erreur}</div>}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: 11, color: '#888', fontFamily: 'monospace' }}>{p.payout_reference ? p.payout_reference.substring(0, 8) + '...' : '-'}</td>
+                      <td style={{ padding: '12px 16px', fontSize: 12, color: '#888' }}>{p.payout_initie_at ? new Date(p.payout_initie_at).toLocaleString('fr-FR') : '-'}</td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ display: 'flex', gap: 6, flexDirection: 'column' }}>
+                          <button onClick={() => verifierStatutPayout(p.id)} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #0066CC', backgroundColor: '#fff', color: '#0066CC', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+                            Verifier statut
+                          </button>
+                          {p.payout_status === 'echec' && (
+                            <button onClick={() => relancerPayout(p.id)} style={{ padding: '5px 10px', borderRadius: 6, border: 'none', backgroundColor: '#E74C3C', color: '#fff', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
+                              Relancer
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </>
       ) : (
         <>
           <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 20 }}>
