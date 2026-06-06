@@ -124,11 +124,6 @@ function DossierModal({ artisan, onClose, onAction }) {
 
   if (actionEnCours) {
     return (
-      {changePhoneFor && (
-        <ModalChangePhone artisan={changePhoneFor}
-          onClose={() => setChangePhoneFor(null)}
-          onSuccess={(res) => { alert('Numero mis a jour : ' + res.ancien + ' -> ' + res.nouveau); chargerArtisans && chargerArtisans(); window.location.reload(); }} />
-      )}
       <ActionModal artisan={artisan} action={actionEnCours} onClose={() => setActionEnCours(null)}
         onConfirm={async (action, message) => { await onAction(artisan.id, action, message); setActionEnCours(null); onClose(); }} />
     );
@@ -137,6 +132,11 @@ function DossierModal({ artisan, onClose, onAction }) {
   return (
     <>
       {lightbox && <Lightbox src={lightbox} onClose={() => setLightbox(null)} />}
+      {changePhoneFor && (
+        <ModalChangePhone artisan={changePhoneFor}
+          onClose={() => setChangePhoneFor(null)}
+          onSuccess={(res) => { alert('Numero mis a jour : ' + res.ancien + ' -> ' + res.nouveau); window.location.reload(); }} />
+      )}
       <Modal titre="Dossier Artisan" onClose={onClose}>
         <div style={{ display: "flex", gap: "16px", alignItems: "center", marginBottom: "20px" }}>
           <div style={{ width: "70px", height: "70px", borderRadius: "50%", backgroundColor: "#e8f5f0", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden", cursor: artisan.photo_profil ? "zoom-in" : "default" }}
