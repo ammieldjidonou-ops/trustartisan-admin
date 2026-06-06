@@ -30,6 +30,53 @@ function Modal({ titre, onClose, children }) {
   );
 }
 
+function ModalChangePhone({ artisan, onClose, onSuccess }) {
+  const [phone, setPhone] = React.useState('');
+  const [motif, setMotif] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [erreur, setErreur] = React.useState('');
+  const submit = async () => {
+    setErreur('');
+    if (!phone.trim() || !motif.trim()) { setErreur('Numero et motif requis'); return; }
+    setLoading(true);
+    try {
+      const resp = await fetch(API_URL + '/api/admin/users/' + artisan.id + '/phone', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phone.trim(), motif: motif.trim() })
+      });
+      const data = await resp.json();
+      if (data.success) { onSuccess(data); onClose(); }
+      else { setErreur(data.error || 'Erreur inconnue'); }
+    } catch (e) { setErreur('Erreur reseau'); }
+    setLoading(false);
+  };
+  return (
+    <Modal titre={'Modifier le numero de ' + (artisan.full_name || 'l artisan')} onClose={onClose}>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Numero actuel</label>
+        <div style={{ fontSize: 14, color: '#333', backgroundColor: '#f8f9fa', padding: '8px 12px', borderRadius: 6 }}>{artisan.phone || '-'}</div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Nouveau numero (format : 0197XXXXXX ou +2290197XXXXXX)</label>
+        <input style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' }}
+          value={phone} onChange={e => setPhone(e.target.value)} placeholder="0197XXXXXX" />
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Motif (audit interne, obligatoire)</label>
+        <textarea style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14, minHeight: 60, fontFamily: 'inherit', boxSizing: 'border-box' }}
+          value={motif} onChange={e => setMotif(e.target.value)} placeholder="Ex : Faute de frappe a l inscription, ancien numero inactif, changement de SIM..." />
+      </div>
+      {erreur && <div style={{ color: '#dc3545', fontSize: 13, marginBottom: 8 }}>{erreur}</div>}
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <button onClick={onClose} disabled={loading} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #ddd', backgroundColor: '#fff', cursor: 'pointer' }}>Annuler</button>
+        <button onClick={submit} disabled={loading} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', backgroundColor: '#1D9E75', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>
+          {loading ? 'Enregistrement...' : 'Confirmer le changement'}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 function ActionModal({ artisan, action, onClose, onConfirm }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -67,6 +114,7 @@ function ActionModal({ artisan, action, onClose, onConfirm }) {
 function DossierModal({ artisan, onClose, onAction }) {
   const [actionEnCours, setActionEnCours] = useState(null);
   const [lightbox, setLightbox] = useState(null);
+  const [changePhoneFor, setChangePhoneFor] = useState(null);
   const statut = artisan.statut || "en_attente_validation";
   const statutInfo = STATUT_COLORS[statut] || STATUT_COLORS.en_attente_validation;
 
@@ -76,6 +124,11 @@ function DossierModal({ artisan, onClose, onAction }) {
 
   if (actionEnCours) {
     return (
+      {changePhoneFor && (
+        <ModalChangePhone artisan={changePhoneFor}
+          onClose={() => setChangePhoneFor(null)}
+          onSuccess={(res) => { alert('Numero mis a jour : ' + res.ancien + ' -> ' + res.nouveau); chargerArtisans && chargerArtisans(); window.location.reload(); }} />
+      )}
       <ActionModal artisan={artisan} action={actionEnCours} onClose={() => setActionEnCours(null)}
         onConfirm={async (action, message) => { await onAction(artisan.id, action, message); setActionEnCours(null); onClose(); }} />
     );
@@ -99,7 +152,15 @@ function DossierModal({ artisan, onClose, onAction }) {
         </div>
 
         <div style={styles.infoGrid}>
-          <InfoItem label="Telephone" value={artisan.phone} />
+          <InfoItem label="Telephone" value={
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              {artisan.phone || '-'}
+              <button onClick={() => setChangePhoneFor(artisan)}
+                style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, border: '1px solid #1D9E75', backgroundColor: '#fff', color: '#1D9E75', cursor: 'pointer' }}>
+                Modifier
+              </button>
+            </span>
+          } />
           <InfoItem label="Commune" value={artisan.commune || "-"} />
           <InfoItem label="Specialite" value={artisan.primary_specialty || "-"} />
           <InfoItem label="Date inscription" value={new Date(artisan.created_at).toLocaleDateString("fr-FR")} />
