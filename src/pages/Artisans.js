@@ -51,6 +51,7 @@ function ModalChangePhone({ artisan, onClose, onSuccess }) {
     setLoading(false);
   };
   return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3000 }}>
     <Modal titre={'Modifier le numero de ' + (artisan.full_name || 'l artisan')} onClose={onClose}>
       <div style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 13, color: '#666', display: 'block', marginBottom: 4 }}>Numero actuel</label>
@@ -74,6 +75,7 @@ function ModalChangePhone({ artisan, onClose, onSuccess }) {
         </button>
       </div>
     </Modal>
+    </div>
   );
 }
 
