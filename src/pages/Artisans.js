@@ -31,10 +31,10 @@ function Modal({ titre, onClose, children }) {
 }
 
 function ModalChangePhone({ artisan, onClose, onSuccess }) {
-  const [phone, setPhone] = React.useState('');
-  const [motif, setMotif] = React.useState('');
-  const [loading, setLoading] = React.useState(false);
-  const [erreur, setErreur] = React.useState('');
+  const [phone, setPhone] = useState('');
+  const [motif, setMotif] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [erreur, setErreur] = useState('');
   const submit = async () => {
     setErreur('');
     if (!phone.trim() || !motif.trim()) { setErreur('Numero et motif requis'); return; }
