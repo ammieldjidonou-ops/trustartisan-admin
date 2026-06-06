@@ -17,6 +17,7 @@ export default function Missions() {
   const [missions, setMissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtre, setFiltre] = useState('tous');
+  const [filtrePhase, setFiltrePhase] = useState('tous');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(null);
   const [showExpirees, setShowExpirees] = useState(false);
@@ -38,7 +39,11 @@ export default function Missions() {
       (m.specialty || '').toLowerCase().includes(search.toLowerCase()) ||
       (m.commune || '').toLowerCase().includes(search.toLowerCase());
     const matchFiltre = filtre === 'tous' || m.status === filtre;
-    return matchSearch && matchFiltre;
+    const phase = m.phase_creation || 'production';
+    const matchPhase = filtrePhase === 'tous'
+      || (filtrePhase === 'plateforme' && phase === 'production')
+      || (filtrePhase === 'hors_plateforme' && phase === 'pre_api');
+    return matchSearch && matchFiltre && matchPhase;
   });
 
   const stats = {
@@ -123,6 +128,16 @@ export default function Missions() {
             ))}
           </div>
         </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>Phase :</span>
+          {[['tous', 'Toutes'], ['plateforme', 'Plateforme (Moov/MTN)'], ['hors_plateforme', 'Hors plateforme']].map(([k, label]) => (
+            <button key={k} onClick={() => setFiltrePhase(k)}
+              style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #ddd', cursor: 'pointer', fontSize: 11,
+                backgroundColor: filtrePhase === k ? '#F5A623' : '#fff', color: filtrePhase === k ? '#fff' : '#555', fontWeight: filtrePhase === k ? 700 : 400 }}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -144,7 +159,7 @@ export default function Missions() {
                 const st = STATUT_CONFIG[m.status] || STATUT_CONFIG.posted;
                 return (
                   <tr key={m.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600 }}>{m.title || '-'}{m.is_urgent && <span style={{ marginLeft: 6, backgroundColor: '#FEF0EE', color: '#E74C3C', fontSize: 10, padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>URGENT</span>}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600 }}>{m.title || '-'}{m.is_urgent && <span style={{ marginLeft: 6, backgroundColor: '#FEF0EE', color: '#E74C3C', fontSize: 10, padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>URGENT</span>}{m.phase_creation === 'pre_api' && <span style={{ marginLeft: 6, backgroundColor: '#FEF6E7', color: '#F5A623', fontSize: 10, padding: '2px 6px', borderRadius: 6, fontWeight: 700 }}>HORS PLATEFORME</span>}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{m.client?.full_name || '-'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{m.artisan?.full_name || <span style={{ color: '#aaa' }}>Non assigné</span>}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{m.specialty || '-'}</td>
