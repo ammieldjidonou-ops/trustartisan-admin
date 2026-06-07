@@ -85,6 +85,16 @@ export default function Dashboard() {
         if (data.config.monetisation) {
           setMonetisation(data.config.monetisation);
         }
+        // Synchroniser les categories actives depuis Supabase (sinon les valeurs hardcodees dans CATEGORIES_CONFIG restent affichees)
+        if (Array.isArray(data.config.categories_actives)) {
+          const actives = data.config.categories_actives.map(s => s.toLowerCase());
+          setCategories(prev => prev.map(c => ({ ...c, active: actives.includes(c.nom.toLowerCase()) })));
+        }
+        // Idem pour les communes
+        if (Array.isArray(data.config.communes_actives)) {
+          const communesActives = data.config.communes_actives.map(s => s.toLowerCase());
+          setCommunes(prev => prev.map(c => ({ ...c, active: communesActives.includes(c.nom.toLowerCase()) })));
+        }
       }
     }).catch(() => {});
     Promise.all([
