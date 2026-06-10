@@ -56,6 +56,54 @@ const MONETISATION_CONFIG = {
 
 export default function Dashboard() {
   const [onglet, setOnglet] = useState('stats');
+  // Etats pour la gestion des quotas d'inscription
+  const [quotas, setQuotas] = useState([]);
+  const [loadingQuotas, setLoadingQuotas] = useState(false);
+  const [quotaForm, setQuotaForm] = useState({ specialty: '', commune: '', max_artisans: '', bloque: false, motif: '' });
+  const [savingQuota, setSavingQuota] = useState(false);
+
+  const chargerQuotas = () => {
+    setLoadingQuotas(true);
+    fetch(API_URL + '/api/admin/quotas')
+      .then(r => r.json())
+      .then(data => { if (data.success) setQuotas(data.quotas || []); })
+      .catch(() => {})
+      .finally(() => setLoadingQuotas(false));
+  };
+
+  useEffect(() => { if (onglet === 'quotas') chargerQuotas(); }, [onglet]);
+
+  const soumettreQuota = () => {
+    if (!quotaForm.specialty || !quotaForm.commune) { alert('Specialite et commune requises'); return; }
+    setSavingQuota(true);
+    fetch(API_URL + '/api/admin/quotas', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        specialty: quotaForm.specialty,
+        commune: quotaForm.commune,
+        max_artisans: quotaForm.max_artisans !== '' ? parseInt(quotaForm.max_artisans) : null,
+        bloque: quotaForm.bloque,
+        motif: quotaForm.motif
+      })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setQuotaForm({ specialty: '', commune: '', max_artisans: '', bloque: false, motif: '' });
+          chargerQuotas();
+        } else alert('Erreur : ' + data.error);
+      })
+      .catch(() => alert('Erreur reseau'))
+      .finally(() => setSavingQuota(false));
+  };
+
+  const supprimerQuota = (id) => {
+    if (!window.confirm('Supprimer cette regle ? Les inscriptions redeviendront libres pour cette combinaison.')) return;
+    fetch(API_URL + '/api/admin/quotas/' + id, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(data => { if (data.success) chargerQuotas(); else alert('Erreur : ' + data.error); })
+      .catch(() => alert('Erreur reseau'));
+  };
   const [categories, setCategories] = useState(CATEGORIES_CONFIG);
   const [communes, setCommunes] = useState(COMMUNES_CONFIG);
   const [monetisation, setMonetisation] = useState(MONETISATION_CONFIG);
@@ -257,9 +305,9 @@ export default function Dashboard() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {['stats', 'filtres', 'monetisation'].map(o => (
+        {['stats', 'filtres', 'monetisation', 'quotas'].map(o => (
           <button key={o} onClick={() => setOnglet(o)} className="btn" style={{ background: onglet === o ? '#1D9E75' : '#f0f0f0', color: onglet === o ? '#fff' : '#555' }}>
-            {o === 'stats' ? '📊 Stats' : o === 'filtres' ? '📍 Filtres' : '💰 Monetisation'}
+            {o === 'stats' ? '📊 Stats' : o === 'filtres' ? '📍 Filtres' : o === 'monetisation' ? '💰 Monetisation' : '🚦 Quotas inscriptions'}
           </button>
         ))}
       </div>
@@ -445,6 +493,92 @@ export default function Dashboard() {
           <button onClick={sauvegarderMonetisation} className="btn btn-primary" style={{ marginTop: 20, width: '100%' }} disabled={saving}>
             {saving ? 'Sauvegarde...' : 'Appliquer la monetisation'}
           </button>
+        </div>
+      )}
+      {onglet === 'quotas' && (
+        <div className='card' style={{ padding: 24 }}>
+          <h3 style={{ margin: '0 0 6px' }}>🚦 Quotas et blocages d'inscriptions artisans</h3>
+          <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Limitez ou suspendez les inscriptions par specialite et commune</p>
+
+          <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, marginBottom: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 12, color: '#555' }}>Ajouter / modifier une regle</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <select value={quotaForm.specialty} onChange={e => setQuotaForm({ ...quotaForm, specialty: e.target.value })}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}>
+                <option value=''>-- Specialite --</option>
+                {categories.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
+              </select>
+              <select value={quotaForm.commune} onChange={e => setQuotaForm({ ...quotaForm, commune: e.target.value })}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}>
+                <option value=''>-- Commune --</option>
+                {communes.map(c => <option key={c.id} value={c.nom}>{c.nom}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <input type='number' min='0' placeholder='Quota max (vide = illimite)' value={quotaForm.max_artisans}
+                onChange={e => setQuotaForm({ ...quotaForm, max_artisans: e.target.value })}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }} />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#555' }}>
+                <input type='checkbox' checked={quotaForm.bloque} onChange={e => setQuotaForm({ ...quotaForm, bloque: e.target.checked })} />
+                Bloquer totalement les inscriptions
+              </label>
+            </div>
+            <input placeholder='Motif (visible par les candidats refuses)' value={quotaForm.motif}
+              onChange={e => setQuotaForm({ ...quotaForm, motif: e.target.value })}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, marginBottom: 12, boxSizing: 'border-box' }} />
+            <button onClick={soumettreQuota} disabled={savingQuota} className='btn btn-primary'>
+              {savingQuota ? 'Enregistrement...' : 'Enregistrer la regle'}
+            </button>
+          </div>
+
+          {loadingQuotas ? (
+            <p style={{ color: '#888', fontSize: 13 }}>Chargement...</p>
+          ) : quotas.length === 0 ? (
+            <p style={{ color: '#aaa', fontSize: 13 }}>Aucune regle active. Les inscriptions sont libres partout.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}>Specialite</th>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}>Commune</th>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}>Artisans</th>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}>Statut</th>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}>Motif</th>
+                  <th style={{ padding: '8px 6px', fontSize: 12, color: '#888' }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {quotas.map(q => {
+                  const plein = q.max_artisans != null && q.artisans_actuels >= q.max_artisans;
+                  return (
+                    <tr key={q.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                      <td style={{ padding: '10px 6px', fontSize: 13, fontWeight: 600 }}>{q.specialty}</td>
+                      <td style={{ padding: '10px 6px', fontSize: 13 }}>{q.commune}</td>
+                      <td style={{ padding: '10px 6px', fontSize: 13 }}>
+                        {q.artisans_actuels}{q.max_artisans != null ? ' / ' + q.max_artisans : ' (illimite)'}
+                      </td>
+                      <td style={{ padding: '10px 6px' }}>
+                        {q.bloque ? (
+                          <span style={{ backgroundColor: '#FEF0EE', color: '#E74C3C', fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>BLOQUE</span>
+                        ) : plein ? (
+                          <span style={{ backgroundColor: '#FEF6E7', color: '#8A6D1E', fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>QUOTA ATTEINT</span>
+                        ) : (
+                          <span style={{ backgroundColor: '#E1F5EE', color: '#0F6E56', fontSize: 11, padding: '3px 8px', borderRadius: 6, fontWeight: 700 }}>OUVERT</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px 6px', fontSize: 12, color: '#888' }}>{q.motif || '-'}</td>
+                      <td style={{ padding: '10px 6px' }}>
+                        <button onClick={() => supprimerQuota(q.id)}
+                          style={{ padding: '4px 10px', fontSize: 11, borderRadius: 6, border: '1px solid #E74C3C', backgroundColor: '#fff', color: '#E74C3C', cursor: 'pointer' }}>
+                          Supprimer
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>
