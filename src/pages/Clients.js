@@ -60,22 +60,34 @@ function ModalClient({ client, onClose }) {
         {loadingStats ? (
           <p style={{ color: '#888', fontSize: 13 }}>Chargement des stats...</p>
         ) : stats ? (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#0066CC' }}>{stats.total_missions}</div>
-              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Total missions</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#0066CC' }}>{stats.total_missions}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Total missions</div>
             </div>
-            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: '#1D9E75' }}>{stats.missions_terminees}</div>
-              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Missions terminees</div>
+            <div style={{ backgroundColor: '#E1F5EE', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#1D9E75' }}>{stats.missions_terminees}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Terminees</div>
             </div>
-            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#F5A623' }}>{(stats.montant_total || 0).toLocaleString('fr-FR')} FCFA</div>
-              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Volume total depense</div>
+            <div style={{ backgroundColor: '#EEF4FF', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#0066CC' }}>{stats.missions_en_cours || 0}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>En cours</div>
             </div>
-            <div style={{ backgroundColor: '#E1F5EE', borderRadius: 10, padding: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0F6E56' }}>{(stats.commission_trustartisan || 0).toLocaleString('fr-FR')} FCFA</div>
-              <div style={{ color: '#888', fontSize: 12, marginTop: 4 }}>Recettes TrustArtisan</div>
+            <div style={{ backgroundColor: '#FEF6E7', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#8A6D1E' }}>{stats.missions_annulees || 0}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Annulees</div>
+            </div>
+            <div style={{ backgroundColor: '#FEF0EE', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: '#E74C3C' }}>{stats.missions_litige || 0}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Litiges</div>
+            </div>
+            <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, color: '#F5A623' }}>{(stats.montant_total || 0).toLocaleString('fr-FR')}</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>FCFA depense</div>
+            </div>
+            <div style={{ backgroundColor: '#E1F5EE', borderRadius: 10, padding: 12, textAlign: 'center', gridColumn: 'span 3' }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: '#0F6E56' }}>{(stats.commission_trustartisan || 0).toLocaleString('fr-FR')} FCFA</div>
+              <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Recettes TrustArtisan (commission 8%)</div>
             </div>
           </div>
         ) : (

@@ -117,6 +117,18 @@ function DossierModal({ artisan, onClose, onAction }) {
   const [actionEnCours, setActionEnCours] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [changePhoneFor, setChangePhoneFor] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    if (!artisan?.id) return;
+    setLoadingStats(true);
+    fetch(API_URL + '/api/admin/artisans/' + artisan.id + '/stats')
+      .then(r => r.json())
+      .then(data => { if (data.success) setStats(data.stats); })
+      .catch(() => {})
+      .finally(() => setLoadingStats(false));
+  }, [artisan?.id]);
   const statut = artisan.statut || "en_attente_validation";
   const statutInfo = STATUT_COLORS[statut] || STATUT_COLORS.en_attente_validation;
 
@@ -177,6 +189,73 @@ function DossierModal({ artisan, onClose, onAction }) {
             <p style={styles.descText}>{artisan.description}</p>
           </div>
         )}
+
+        <div style={styles.section}>
+          <label style={styles.label}>Statistiques</label>
+          {loadingStats ? (
+            <p style={{ color: '#888', fontSize: 13 }}>Chargement des stats...</p>
+          ) : stats ? (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#0066CC' }}>{stats.total_missions}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Total</div>
+                </div>
+                <div style={{ backgroundColor: '#E1F5EE', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#1D9E75' }}>{stats.missions_terminees}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Terminees</div>
+                </div>
+                <div style={{ backgroundColor: '#EEF4FF', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#0066CC' }}>{stats.missions_en_cours || 0}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>En cours</div>
+                </div>
+                <div style={{ backgroundColor: '#FEF6E7', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#8A6D1E' }}>{stats.missions_annulees || 0}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Annulees</div>
+                </div>
+                <div style={{ backgroundColor: '#FEF0EE', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#E74C3C' }}>{stats.missions_litige || 0}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Litiges</div>
+                </div>
+                <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: '#F5A623' }}>{(stats.montant_percu || 0).toLocaleString('fr-FR')}</div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>FCFA percu</div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div style={{ backgroundColor: '#FFF8E7', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#F5A623' }}>
+                    {stats.note_moyenne ? stats.note_moyenne.toFixed(1) : '-'}
+                    {stats.note_moyenne ? <span style={{ fontSize: 14, color: '#888' }}> /5</span> : null}
+                  </div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Note moyenne</div>
+                </div>
+                <div style={{ backgroundColor: '#E8F5F0', borderRadius: 10, padding: 12, textAlign: 'center' }}>
+                  <div style={{ fontSize: 22, fontWeight: 700, color: '#0F6E56' }}>
+                    {stats.score_qualite || 0}
+                    <span style={{ fontSize: 12, color: '#888' }}> /5</span>
+                  </div>
+                  <div style={{ color: '#888', fontSize: 11, marginTop: 4 }}>Score qualite (note x taux validation {stats.taux_validation}%)</div>
+                </div>
+              </div>
+
+              {Array.isArray(stats.top_specialites) && stats.top_specialites.length > 0 && (
+                <div style={{ backgroundColor: '#f8f9fa', borderRadius: 10, padding: 12 }}>
+                  <div style={{ color: '#666', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', marginBottom: 8 }}>Top specialites realisees</div>
+                  {stats.top_specialites.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: 13 }}>
+                      <span>{i + 1}. {s.nom}</span>
+                      <span style={{ color: '#1D9E75', fontWeight: 600 }}>{s.count} mission{s.count > 1 ? 's' : ''}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <p style={{ color: '#aaa', fontSize: 13 }}>Aucune mission pour cet artisan.</p>
+          )}
+        </div>
 
         {artisan.piece_identite && (
           <div style={styles.section}>
