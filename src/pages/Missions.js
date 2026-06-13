@@ -61,6 +61,15 @@ export default function Missions() {
     return joursEcoules > 5;
   });
 
+  // Missions en cours depuis plus de 7 jours (depuis l'acceptation du devis)
+  // -> a relancer/arbitrer manuellement par l'admin (pas d'annulation automatique)
+  const missionsEnRetard = missions.filter(m => {
+    if (m.status !== 'in_progress') return false;
+    const reference = m.quote_accepted_at || m.created_at;
+    const joursEcoules = (maintenant - new Date(reference)) / (1000 * 60 * 60 * 24);
+    return joursEcoules > 7;
+  });
+
   const annulerMissionsExpirees = async (ids) => {
     if (!window.confirm('Annuler ' + ids.length + ' mission(s) expirée(s) ? Les clients recevront une notification.')) return;
     setAnnulationEnCours(true);
@@ -95,6 +104,12 @@ export default function Missions() {
               style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
               ⚠️ {missionsExpirees.length} mission(s) expirée(s) &gt; 5 jours
             </button>
+          )}
+          {missionsEnRetard.length > 0 && (
+            <span title="Missions acceptees depuis plus de 7 jours toujours en cours : relancez l'artisan ou le client."
+              style={{ backgroundColor: '#FEF6E7', color: '#8A6D1E', border: '1px solid #F5A623', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+              🐌 {missionsEnRetard.length} mission(s) en cours depuis +7 jours
+            </span>
           )}
         </div>
       </div>
