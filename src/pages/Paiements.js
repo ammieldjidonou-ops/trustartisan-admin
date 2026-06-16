@@ -17,6 +17,13 @@ const PAYMENT_CONFIG = {
   rembourse: { label: 'Rembourse au client', color: '#E74C3C', bg: '#FEF0EE' },
 };
 
+const ACOMPTE_CONFIG = {
+  demande: { label: 'En attente client', color: '#F5A623', bg: '#FEF6E7' },
+  approuve: { label: 'Approuve', color: '#0066CC', bg: '#EEF4FF' },
+  verse: { label: 'Verse', color: '#1D9E75', bg: '#E1F5EE' },
+  refuse: { label: 'Refuse', color: '#E74C3C', bg: '#FEF0EE' },
+  echec: { label: 'Echec versement', color: '#C0392B', bg: '#FEF0EE' },
+};
 export default function Paiements() {
   const [missions, setMissions] = useState([]);
   const [sequestres, setSequestres] = useState([]);
@@ -26,6 +33,7 @@ export default function Paiements() {
   const [onglet, setOnglet] = useState('sequestres');
   const [actionMsg, setActionMsg] = useState('');
   const [payouts, setPayouts] = useState([]);
+  const [acomptes, setAcomptes] = useState([]);
   const [compteursPayouts, setCompteursPayouts] = useState({ en_cours: 0, succes: 0, echec: 0, total_verse_fcfa: 0 });
   const [filtrePayout, setFiltrePayout] = useState('tous');
 
@@ -88,7 +96,13 @@ export default function Paiements() {
     } catch (e) { setActionMsg('Erreur serveur'); }
   };
 
-  useEffect(() => { chargerDonnees(); }, []);
+  const chargerAcomptes = () => {
+    fetch(API_URL + '/api/acomptes/admin')
+      .then(r => r.json())
+      .then(data => { if (data.success) setAcomptes(data.acomptes || []); })
+      .catch(() => {});
+  };
+  useEffect(() => { chargerDonnees(); chargerAcomptes(); }, []);
 
   const libererSequestre = async (id) => {
     if (!window.confirm('Liberer ce montant vers l artisan ? Cette action confirme que la mission est correctement realisee.')) return;
@@ -163,7 +177,7 @@ export default function Paiements() {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['sequestres', 'Sequestres a gerer'], ['payouts', 'Versements artisans'], ['transactions', 'Toutes les transactions']].map(([k, label]) => (
+        {[['sequestres', 'Sequestres a gerer'], ['payouts', 'Versements artisans'], ['acomptes', 'Acomptes materiel'], ['transactions', 'Toutes les transactions']].map(([k, label]) => (
           <button key={k} onClick={() => { setOnglet(k); if (k === 'payouts') chargerPayouts(filtrePayout); }}
             style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 13,
               backgroundColor: onglet === k ? '#1D9E75' : '#f0f0f0', color: onglet === k ? '#fff' : '#555' }}>
@@ -305,6 +319,39 @@ export default function Paiements() {
             </table>
           </div>
         </>
+      ) : onglet === 'acomptes' ? (
+        <div style={{ backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead style={{ backgroundColor: '#f8f9fa' }}>
+              <tr>
+                {['Mission', 'Artisan', 'Client', 'Montant', 'Motif', 'Statut', 'Justif.', 'Date'].map(h => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#666', borderBottom: '1px solid #eee' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {acomptes.length === 0 ? (
+                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>Aucun acompte</td></tr>
+              ) : acomptes.map(a => {
+                const ac = ACOMPTE_CONFIG[a.statut] || ACOMPTE_CONFIG.demande;
+                return (
+                  <tr key={a.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                    <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.mission?.title || '-'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.artisan?.full_name || '-'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.client?.full_name || '-'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1D9E75' }}>{(a.montant_fcfa || 0).toLocaleString('fr-FR')} FCFA</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#666' }}>{a.motif || '-'}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ backgroundColor: ac.bg, color: ac.color, padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{ac.label}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: 12 }}>{a.justificatif_url ? <a href={a.justificatif_url} target='_blank' rel='noreferrer' style={{ color: '#0066CC' }}>Voir</a> : '-'}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: '#888' }}>{a.demande_at ? new Date(a.demande_at).toLocaleDateString('fr-FR') : '-'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       ) : (
         <>
           <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 20 }}>
