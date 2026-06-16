@@ -22,6 +22,7 @@ const CATEGORIES_CONFIG = [
   { id: 25, nom: 'Couture', active: false }, { id: 26, nom: 'Broderie', active: false },
   { id: 27, nom: 'Poterie', active: false }, { id: 28, nom: 'Vannerie', active: false },
   { id: 29, nom: 'Sculpture bois', active: false }, { id: 30, nom: 'Cuisine Traiteur', active: false },
+  { id: 31, nom: 'Videosurveillance', active: true },
 ];
 
 const COMMUNES_CONFIG = [
