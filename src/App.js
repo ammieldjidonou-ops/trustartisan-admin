@@ -10,6 +10,7 @@ import Collaborateurs from './pages/Collaborateurs';
 import Signalements from './pages/Signalements';
 import Notifications from './pages/Notifications';
 import Comptabilite from './pages/Comptabilite';
+import CommunityManager from './pages/CommunityManager';
 import Login from './pages/Login';
 import './App.css';
 
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/signalements" element={<Signalements admin={admin} />} />
             <Route path="/notifications" element={<Notifications admin={admin} />} />
             <Route path="/comptabilite" element={<Comptabilite admin={admin} />} />
+            <Route path="/community-manager" element={<CommunityManager admin={admin} />} />
           </Routes>
         </main>
       </div>
