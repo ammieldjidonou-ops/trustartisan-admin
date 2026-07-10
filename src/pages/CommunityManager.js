@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
