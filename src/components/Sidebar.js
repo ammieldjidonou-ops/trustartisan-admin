@@ -12,6 +12,7 @@ const MENU = [
   { path: '/notifications', icon: '🔔', label: 'Notifications', roles: ['super_admin'] },
   { path: '/comptabilite', icon: '📒', label: 'Comptabilite', roles: ['super_admin'] },
   { path: '/community-manager', icon: '📣', label: 'Community Manager', roles: ['super_admin'] },
+  { path: '/calendrier', icon: '📅', label: 'Calendrier', roles: ['super_admin'] },
 ];
 
 const ROLE_LABELS = {

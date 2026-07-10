@@ -21,10 +21,12 @@ const IDEES = [
 export default function CommunityManager() {
   const [theme, setTheme] = useState('');
   const [selection, setSelection] = useState({ facebook: true, instagram: true, linkedin: false, tiktok: false, youtube: false });
-  const [posts, setPosts] = useState({});     // { plateforme: { statut, texte, error } }
-  const [images, setImages] = useState({});   // { plateforme: { statut, url, error } }
+  const [posts, setPosts] = useState({});
+  const [images, setImages] = useState({});
   const [loadingGlobal, setLoadingGlobal] = useState(false);
   const [copie, setCopie] = useState('');
+  const [dates, setDates] = useState({});
+  const [sauve, setSauve] = useState({});
 
   const togglePlateforme = (k) => setSelection(s => ({ ...s, [k]: !s[k] }));
   const plateformesChoisies = () => PLATEFORMES.filter(p => selection[p.key]).map(p => p.key);
@@ -61,12 +63,40 @@ export default function CommunityManager() {
 
   const genererTout = async () => {
     if (!theme.trim()) return;
-    const choix = plateformesChoisies();
-    if (choix.length === 0) return;
+    const liste = plateformesChoisies();
+    if (liste.length === 0) return;
     setLoadingGlobal(true);
-    setImages({}); // on repart propre sur les visuels
-    await Promise.all(choix.map(p => genererUne(p, theme.trim())));
+    setImages({});
+    await Promise.all(liste.map(p => genererUne(p, theme.trim())));
     setLoadingGlobal(false);
+  };
+
+  const enregistrerAuCalendrier = async (plateforme) => {
+    const etat = posts[plateforme];
+    if (!etat || etat.statut !== 'ok') return;
+    setSauve(prev => ({ ...prev, [plateforme]: 'encours' }));
+    try {
+      const img = images[plateforme];
+      const r = await fetch(API_URL + '/api/social/posts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          theme: theme.trim(),
+          plateforme: plateforme,
+          texte: etat.texte,
+          image_base64: (img && img.statut === 'ok') ? img.url : null,
+          date_prevue: dates[plateforme] || null
+        })
+      });
+      const data = await r.json();
+      if (data.success) {
+        setSauve(prev => ({ ...prev, [plateforme]: 'ok' }));
+        setTimeout(() => setSauve(prev => ({ ...prev, [plateforme]: 'idle' })), 2000);
+      } else {
+        setSauve(prev => ({ ...prev, [plateforme]: 'erreur' }));
+      }
+    } catch (e) {
+      setSauve(prev => ({ ...prev, [plateforme]: 'erreur' }));
+    }
   };
 
   const copier = (plateforme, texte) => {
@@ -78,11 +108,8 @@ export default function CommunityManager() {
 
   const telechargerImage = (plateforme, url) => {
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'trustartisan-' + plateforme + '.png';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    a.href = url; a.download = 'trustartisan-' + plateforme + '.png';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   };
 
   const modifierTexte = (plateforme, valeur) => {
@@ -98,7 +125,6 @@ export default function CommunityManager() {
         <p style={{ color: '#888', fontSize: 14, marginTop: 4 }}>Generez des propositions de posts et de visuels adaptes a chaque reseau. Vous validez avant toute publication.</p>
       </div>
 
-      {/* Bloc de saisie */}
       <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 24 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#555', marginBottom: 8 }}>Theme / sujet du post</label>
         <textarea value={theme} onChange={e => setTheme(e.target.value)}
@@ -147,7 +173,6 @@ export default function CommunityManager() {
         </div>
       </div>
 
-      {/* Resultats */}
       {choix.length > 0 && Object.keys(posts).length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {PLATEFORMES.filter(p => posts[p.key]).map(p => {
@@ -155,7 +180,6 @@ export default function CommunityManager() {
             const img = images[p.key];
             return (
               <div key={p.key} style={{ backgroundColor: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                {/* En-tete carte */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #f0f0f0' }}>
                   <span style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: p.couleur, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{p.icon}</span>
                   <span style={{ fontWeight: 700, fontSize: 14, color: '#333' }}>{p.label}</span>
@@ -173,7 +197,6 @@ export default function CommunityManager() {
                   </div>
                 </div>
 
-                {/* Corps carte : texte */}
                 <div style={{ padding: 16, flex: 1 }}>
                   {etat.statut === 'chargement' && (
                     <div style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '30px 0' }}>Redaction en cours...</div>
@@ -195,10 +218,9 @@ export default function CommunityManager() {
                   )}
                 </div>
 
-                {/* Zone visuel */}
                 {etat.statut === 'ok' && (
                   <div style={{ padding: '0 16px 16px' }}>
-                    {(!img || img.statut === 'idle') && (
+                    {!img && (
                       <button onClick={() => genererImage(p.key, theme.trim())}
                         style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px dashed ' + p.couleur, backgroundColor: p.couleur + '0D', color: p.couleur, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
                         Generer un visuel
@@ -232,6 +254,21 @@ export default function CommunityManager() {
                     )}
                   </div>
                 )}
+
+                {etat.statut === 'ok' && (
+                  <div style={{ padding: '12px 16px 16px', borderTop: '1px solid #f5f5f5' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input type="date" value={dates[p.key] || ''} onChange={e => setDates(prev => ({ ...prev, [p.key]: e.target.value }))}
+                        style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, fontFamily: 'inherit' }} />
+                      <button onClick={() => enregistrerAuCalendrier(p.key)} disabled={sauve[p.key] === 'encours'}
+                        style={{ padding: '8px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+                          backgroundColor: sauve[p.key] === 'ok' ? '#1D9E75' : (sauve[p.key] === 'erreur' ? '#E74C3C' : '#0C3B2E'), color: '#fff', whiteSpace: 'nowrap' }}>
+                        {sauve[p.key] === 'encours' ? '...' : sauve[p.key] === 'ok' ? 'Enregistre !' : sauve[p.key] === 'erreur' ? 'Erreur' : 'Enregistrer au calendrier'}
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: '#aaa', marginTop: 5 }}>Sans date : brouillon. Avec date : programme dans le calendrier.</div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -239,7 +276,7 @@ export default function CommunityManager() {
       )}
 
       <div style={{ marginTop: 24, padding: 14, backgroundColor: '#FEF6E7', border: '1px solid #F5A623', borderRadius: 10, fontSize: 12, color: '#8a6d1a' }}>
-        <strong>Mode semi-automatique :</strong> l&apos;IA prepare les textes et les visuels, vous les relisez, modifiez et telechargez, puis vous publiez vous-meme sur chaque reseau. La publication automatique arrivera dans une prochaine etape.
+        <strong>Mode semi-automatique :</strong> l&apos;IA prepare les textes et les visuels, vous les relisez, modifiez et enregistrez au calendrier, puis vous publiez vous-meme sur chaque reseau. La publication automatique arrivera dans une prochaine etape.
       </div>
     </div>
   );
