@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
@@ -35,7 +35,7 @@ export default function CommunityManager() {
     setPosts(prev => ({ ...prev, [plateforme]: { statut: 'chargement', texte: '', error: '' } }));
     try {
       const r = await fetch(API_URL + '/api/social/generer', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') },
         body: JSON.stringify({ theme: themeUtilise, plateforme })
       });
       const data = await r.json();
@@ -50,7 +50,7 @@ export default function CommunityManager() {
     setImages(prev => ({ ...prev, [plateforme]: { statut: 'chargement', url: '', error: '' } }));
     try {
       const r = await fetch(API_URL + '/api/social/image', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') },
         body: JSON.stringify({ theme: themeUtilise, plateforme })
       });
       const data = await r.json();
@@ -78,7 +78,7 @@ export default function CommunityManager() {
     try {
       const img = images[plateforme];
       const r = await fetch(API_URL + '/api/social/posts', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') },
         body: JSON.stringify({
           theme: theme.trim(),
           plateforme: plateforme,

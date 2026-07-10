@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
@@ -30,7 +30,7 @@ export default function CalendrierEditorial() {
   const charger = useCallback(async () => {
     setChargement(true);
     try {
-      const r = await fetch(API_URL + '/api/social/posts?mois=' + moisStr);
+      const r = await fetch(API_URL + '/api/social/posts?mois=' + moisStr, { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') } });
       const data = await r.json();
       if (data.success) setPosts(data.posts || []);
     } catch (e) { /* silencieux */ }
@@ -42,7 +42,7 @@ export default function CalendrierEditorial() {
   const supprimer = async (id) => {
     if (!window.confirm('Supprimer ce post du calendrier ?')) return;
     try {
-      const r = await fetch(API_URL + '/api/social/posts/' + id, { method: 'DELETE' });
+      const r = await fetch(API_URL + '/api/social/posts/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') } });
       const data = await r.json();
       if (data.success) { setSelection(null); charger(); }
     } catch (e) { /* silencieux */ }
@@ -51,7 +51,7 @@ export default function CalendrierEditorial() {
   const marquerPublie = async (id) => {
     try {
       const r = await fetch(API_URL + '/api/social/posts/' + id, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + localStorage.getItem('admin_token') },
         body: JSON.stringify({ statut: 'publie' })
       });
       const data = await r.json();
