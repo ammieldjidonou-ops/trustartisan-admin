@@ -21,30 +21,41 @@ const IDEES = [
 export default function CommunityManager() {
   const [theme, setTheme] = useState('');
   const [selection, setSelection] = useState({ facebook: true, instagram: true, linkedin: false, tiktok: false, youtube: false });
-  const [posts, setPosts] = useState({});        // { plateforme: { statut, texte, error } }
+  const [posts, setPosts] = useState({});     // { plateforme: { statut, texte, error } }
+  const [images, setImages] = useState({});   // { plateforme: { statut, url, error } }
   const [loadingGlobal, setLoadingGlobal] = useState(false);
   const [copie, setCopie] = useState('');
 
   const togglePlateforme = (k) => setSelection(s => ({ ...s, [k]: !s[k] }));
-
   const plateformesChoisies = () => PLATEFORMES.filter(p => selection[p.key]).map(p => p.key);
 
   const genererUne = async (plateforme, themeUtilise) => {
     setPosts(prev => ({ ...prev, [plateforme]: { statut: 'chargement', texte: '', error: '' } }));
     try {
       const r = await fetch(API_URL + '/api/social/generer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ theme: themeUtilise, plateforme })
       });
       const data = await r.json();
-      if (data.success) {
-        setPosts(prev => ({ ...prev, [plateforme]: { statut: 'ok', texte: data.post, error: '' } }));
-      } else {
-        setPosts(prev => ({ ...prev, [plateforme]: { statut: 'erreur', texte: '', error: data.error || 'Echec de la generation' } }));
-      }
+      if (data.success) setPosts(prev => ({ ...prev, [plateforme]: { statut: 'ok', texte: data.post, error: '' } }));
+      else setPosts(prev => ({ ...prev, [plateforme]: { statut: 'erreur', texte: '', error: data.error || 'Echec de la generation' } }));
     } catch (e) {
       setPosts(prev => ({ ...prev, [plateforme]: { statut: 'erreur', texte: '', error: 'Erreur reseau' } }));
+    }
+  };
+
+  const genererImage = async (plateforme, themeUtilise) => {
+    setImages(prev => ({ ...prev, [plateforme]: { statut: 'chargement', url: '', error: '' } }));
+    try {
+      const r = await fetch(API_URL + '/api/social/image', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: themeUtilise, plateforme })
+      });
+      const data = await r.json();
+      if (data.success) setImages(prev => ({ ...prev, [plateforme]: { statut: 'ok', url: data.image, error: '' } }));
+      else setImages(prev => ({ ...prev, [plateforme]: { statut: 'erreur', url: '', error: data.error || 'Echec de la generation d image' } }));
+    } catch (e) {
+      setImages(prev => ({ ...prev, [plateforme]: { statut: 'erreur', url: '', error: 'Erreur reseau' } }));
     }
   };
 
@@ -53,6 +64,7 @@ export default function CommunityManager() {
     const choix = plateformesChoisies();
     if (choix.length === 0) return;
     setLoadingGlobal(true);
+    setImages({}); // on repart propre sur les visuels
     await Promise.all(choix.map(p => genererUne(p, theme.trim())));
     setLoadingGlobal(false);
   };
@@ -62,6 +74,15 @@ export default function CommunityManager() {
       setCopie(plateforme);
       setTimeout(() => setCopie(''), 1500);
     });
+  };
+
+  const telechargerImage = (plateforme, url) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trustartisan-' + plateforme + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const modifierTexte = (plateforme, valeur) => {
@@ -74,21 +95,16 @@ export default function CommunityManager() {
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, margin: 0 }}>Community Manager IA</h1>
-        <p style={{ color: '#888', fontSize: 14, marginTop: 4 }}>Generez des propositions de posts adaptees a chaque reseau. Vous validez avant toute publication.</p>
+        <p style={{ color: '#888', fontSize: 14, marginTop: 4 }}>Generez des propositions de posts et de visuels adaptes a chaque reseau. Vous validez avant toute publication.</p>
       </div>
 
       {/* Bloc de saisie */}
       <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', marginBottom: 24 }}>
         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#555', marginBottom: 8 }}>Theme / sujet du post</label>
-        <textarea
-          value={theme}
-          onChange={e => setTheme(e.target.value)}
-          placeholder="Ex : Presenter le paiement securise par sequestre aux clients"
-          rows={2}
-          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }}
-        />
+        <textarea value={theme} onChange={e => setTheme(e.target.value)}
+          placeholder="Ex : Presenter le paiement securise par sequestre aux clients" rows={2}
+          style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit' }} />
 
-        {/* Idees rapides */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
           {IDEES.map(idee => (
             <button key={idee} onClick={() => setTheme(idee)}
@@ -98,7 +114,6 @@ export default function CommunityManager() {
           ))}
         </div>
 
-        {/* Choix des plateformes */}
         <label style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#555', margin: '18px 0 8px' }}>Plateformes</label>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {PLATEFORMES.map(p => {
@@ -108,8 +123,7 @@ export default function CommunityManager() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 10, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   border: actif ? '2px solid ' + p.couleur : '2px solid #e5e5e5',
-                  backgroundColor: actif ? p.couleur + '12' : '#fff',
-                  color: actif ? p.couleur : '#888'
+                  backgroundColor: actif ? p.couleur + '12' : '#fff', color: actif ? p.couleur : '#888'
                 }}>
                 <span style={{ width: 22, height: 22, borderRadius: 6, backgroundColor: p.couleur, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{p.icon}</span>
                 {p.label}
@@ -119,7 +133,6 @@ export default function CommunityManager() {
           })}
         </div>
 
-        {/* Bouton generer */}
         <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={genererTout} disabled={loadingGlobal || !theme.trim() || choix.length === 0}
             style={{
@@ -139,6 +152,7 @@ export default function CommunityManager() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 16 }}>
           {PLATEFORMES.filter(p => posts[p.key]).map(p => {
             const etat = posts[p.key];
+            const img = images[p.key];
             return (
               <div key={p.key} style={{ backgroundColor: '#fff', borderRadius: 12, boxShadow: '0 1px 4px rgba(0,0,0,0.08)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 {/* En-tete carte */}
@@ -146,7 +160,7 @@ export default function CommunityManager() {
                   <span style={{ width: 26, height: 26, borderRadius: 7, backgroundColor: p.couleur, color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{p.icon}</span>
                   <span style={{ fontWeight: 700, fontSize: 14, color: '#333' }}>{p.label}</span>
                   <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    <button onClick={() => genererUne(p.key, theme.trim())} title="Regenerer"
+                    <button onClick={() => genererUne(p.key, theme.trim())} title="Regenerer le texte"
                       style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #ddd', backgroundColor: '#fff', color: '#555', cursor: 'pointer', fontSize: 12 }}>
                       Regenerer
                     </button>
@@ -159,7 +173,7 @@ export default function CommunityManager() {
                   </div>
                 </div>
 
-                {/* Corps carte */}
+                {/* Corps carte : texte */}
                 <div style={{ padding: 16, flex: 1 }}>
                   {etat.statut === 'chargement' && (
                     <div style={{ color: '#aaa', fontSize: 13, textAlign: 'center', padding: '30px 0' }}>Redaction en cours...</div>
@@ -174,25 +188,58 @@ export default function CommunityManager() {
                   )}
                   {etat.statut === 'ok' && (
                     <>
-                      <textarea
-                        value={etat.texte}
-                        onChange={e => modifierTexte(p.key, e.target.value)}
-                        rows={10}
-                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #eee', fontSize: 13, lineHeight: 1.5, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', color: '#333', backgroundColor: '#fafafa' }}
-                      />
+                      <textarea value={etat.texte} onChange={e => modifierTexte(p.key, e.target.value)} rows={9}
+                        style={{ width: '100%', padding: 12, borderRadius: 8, border: '1px solid #eee', fontSize: 13, lineHeight: 1.5, boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', color: '#333', backgroundColor: '#fafafa' }} />
                       <div style={{ marginTop: 6, fontSize: 11, color: '#aaa', textAlign: 'right' }}>{etat.texte.length} caracteres &middot; modifiable</div>
                     </>
                   )}
                 </div>
+
+                {/* Zone visuel */}
+                {etat.statut === 'ok' && (
+                  <div style={{ padding: '0 16px 16px' }}>
+                    {(!img || img.statut === 'idle') && (
+                      <button onClick={() => genererImage(p.key, theme.trim())}
+                        style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px dashed ' + p.couleur, backgroundColor: p.couleur + '0D', color: p.couleur, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                        Generer un visuel
+                      </button>
+                    )}
+                    {img && img.statut === 'chargement' && (
+                      <div style={{ textAlign: 'center', padding: '24px 0', color: '#aaa', fontSize: 13, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+                        Creation du visuel en cours... (10-20 s)
+                      </div>
+                    )}
+                    {img && img.statut === 'erreur' && (
+                      <div style={{ color: '#E74C3C', fontSize: 12, padding: '10px 0' }}>
+                        {img.error}
+                        <button onClick={() => genererImage(p.key, theme.trim())} style={{ marginLeft: 8, padding: '4px 10px', borderRadius: 6, border: '1px solid #E74C3C', backgroundColor: '#fff', color: '#E74C3C', cursor: 'pointer', fontSize: 11 }}>Reessayer</button>
+                      </div>
+                    )}
+                    {img && img.statut === 'ok' && (
+                      <div>
+                        <img src={img.url} alt={'Visuel ' + p.label} style={{ width: '100%', borderRadius: 8, border: '1px solid #eee', display: 'block' }} />
+                        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                          <button onClick={() => genererImage(p.key, theme.trim())}
+                            style={{ flex: 1, padding: '7px', borderRadius: 6, border: '1px solid #ddd', backgroundColor: '#fff', color: '#555', cursor: 'pointer', fontSize: 12 }}>
+                            Regenerer le visuel
+                          </button>
+                          <button onClick={() => telechargerImage(p.key, img.url)}
+                            style={{ flex: 1, padding: '7px', borderRadius: 6, border: 'none', backgroundColor: '#1D9E75', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+                            Telecharger
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Note bas de page */}
       <div style={{ marginTop: 24, padding: 14, backgroundColor: '#FEF6E7', border: '1px solid #F5A623', borderRadius: 10, fontSize: 12, color: '#8a6d1a' }}>
-        <strong>Mode semi-automatique :</strong> l&apos;IA prepare les propositions, vous les relisez et modifiez, puis vous publiez vous-meme (copier-coller) sur chaque reseau. La publication automatique et la generation d&apos;images arriveront dans les prochaines etapes.
+        <strong>Mode semi-automatique :</strong> l&apos;IA prepare les textes et les visuels, vous les relisez, modifiez et telechargez, puis vous publiez vous-meme sur chaque reseau. La publication automatique arrivera dans une prochaine etape.
       </div>
     </div>
   );
