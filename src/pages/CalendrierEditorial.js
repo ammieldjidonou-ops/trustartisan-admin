@@ -145,9 +145,9 @@ export default function CalendrierEditorial() {
               </span>
             </div>
             <div style={{ fontSize: 13, color: '#888', marginBottom: 8 }}>Prevu le {selection.date_prevue}</div>
-            {selection.image_base64 && (
+            {(selection.image_url || selection.image_base64) && (
               // eslint-disable-next-line jsx-a11y/img-redundant-alt
-              <img src={selection.image_base64} alt="Visuel du post" style={{ width: '100%', borderRadius: 8, marginBottom: 12, border: '1px solid #eee' }} />
+              <img src={selection.image_url || selection.image_base64} alt="Visuel du post" style={{ width: '100%', borderRadius: 8, marginBottom: 12, border: '1px solid #eee' }} />
             )}
             <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, lineHeight: 1.5, color: '#333', backgroundColor: '#fafafa', borderRadius: 8, padding: 12, border: '1px solid #eee' }}>{selection.texte}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
