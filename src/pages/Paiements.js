@@ -324,19 +324,20 @@ export default function Paiements() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ backgroundColor: '#f8f9fa' }}>
               <tr>
-                {['Mission', 'Artisan', 'Client', 'Montant', 'Motif', 'Statut', 'Justif.', 'Date'].map(h => (
+                {['Mission', 'Type', 'Artisan', 'Client', 'Montant', 'Motif', 'Statut', 'Justif.', 'Date'].map(h => (
                   <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, fontWeight: 700, color: '#666', borderBottom: '1px solid #eee' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {acomptes.length === 0 ? (
-                <tr><td colSpan={8} style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>Aucun acompte</td></tr>
+                <tr><td colSpan={9} style={{ textAlign: 'center', padding: 40, color: '#aaa' }}>Aucun acompte</td></tr>
               ) : acomptes.map(a => {
                 const ac = ACOMPTE_CONFIG[a.statut] || ACOMPTE_CONFIG.demande;
                 return (
                   <tr key={a.id} style={{ borderBottom: '1px solid #f5f5f5' }}>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.mission?.title || '-'}</td>
+                    <td style={{ padding: '12px 16px' }}><span style={{ backgroundColor: a.type === 'versement_etape' ? '#EEF4FF' : '#FEF6E7', color: a.type === 'versement_etape' ? '#0066CC' : '#854F0B', padding: '3px 10px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>{a.type === 'versement_etape' ? 'Versement etape' : 'Materiel'}</span></td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.artisan?.full_name || '-'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13 }}>{a.client?.full_name || '-'}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#1D9E75' }}>{(a.montant_fcfa || 0).toLocaleString('fr-FR')} FCFA</td>
