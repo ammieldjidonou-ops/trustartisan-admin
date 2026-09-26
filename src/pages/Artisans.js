@@ -113,6 +113,38 @@ function ActionModal({ artisan, action, onClose, onConfirm }) {
   );
 }
 
+// Piece d'identite : stockee dans un espace PRIVE. On demande un lien temporaire (5 min)
+// au backend, uniquement quand l'admin clique (chaque consultation est journalisee).
+function PieceIdentite({ artisanId, onZoom }) {
+  const [lien, setLien] = useState(null);
+  const [chargement, setChargement] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const afficher = async () => {
+    setChargement(true); setErreur('');
+    try {
+      const r = await fetch(API_URL + '/api/admin/artisans/' + artisanId + '/piece-identite');
+      const d = await r.json();
+      if (d.success) setLien(d); else setErreur(d.error || 'Lien indisponible');
+    } catch (e) { setErreur('Serveur inaccessible'); }
+    setChargement(false);
+  };
+  if (!lien) {
+    return (
+      <div>
+        <button onClick={afficher} disabled={chargement}
+          style={{ background: "#1D9E75", color: "#fff", border: "none", borderRadius: "8px", padding: "8px 14px", cursor: "pointer", fontSize: "14px" }}>
+          {chargement ? "Chargement..." : "Afficher la piece d identite"}
+        </button>
+        {erreur && <p style={{ color: "#E74C3C", fontSize: 13 }}>{erreur}</p>}
+      </div>
+    );
+  }
+  return lien.est_pdf
+    ? <a href={lien.url} target="_blank" rel="noreferrer" style={{ color: "#1D9E75", fontSize: "14px" }}>Voir le PDF (lien valable 5 min)</a>
+    : <img src={lien.url} alt="piece" onClick={() => onZoom(lien.url)}
+        style={{ width: "100%", maxHeight: "180px", objectFit: "contain", borderRadius: "8px", border: "1px solid #eee", cursor: "zoom-in" }} />;
+}
+
 function DossierModal({ artisan, onClose, onAction }) {
   const [actionEnCours, setActionEnCours] = useState(null);
   const [lightbox, setLightbox] = useState(null);
@@ -260,10 +292,7 @@ function DossierModal({ artisan, onClose, onAction }) {
         {artisan.piece_identite && (
           <div style={styles.section}>
             <label style={styles.label}>Piece d identite</label>
-            {artisan.piece_identite.endsWith(".pdf")
-              ? <a href={artisan.piece_identite} target="_blank" rel="noreferrer" style={{ color: "#1D9E75", fontSize: "14px" }}>Voir le PDF</a>
-              : <img src={artisan.piece_identite} alt="piece" onClick={() => setLightbox(artisan.piece_identite)}
-                  style={{ width: "100%", maxHeight: "180px", objectFit: "contain", borderRadius: "8px", border: "1px solid #eee", cursor: "zoom-in" }} />}
+            <PieceIdentite artisanId={artisan.id} onZoom={setLightbox} />
           </div>
         )}
 

@@ -1,3 +1,5 @@
+// Doit rester le PREMIER import : jeton admin ajoute a tous les appels API
+import './authFetch';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
