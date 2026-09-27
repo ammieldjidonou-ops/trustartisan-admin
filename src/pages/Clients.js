@@ -109,15 +109,16 @@ function ModalClient({ client, onClose }) {
               {client.statut === 'actif' ? 'Suspendre le compte' : 'Reactiver le compte'}
             </button>
             <button onClick={() => {
-              if (window.confirm('ATTENTION : Supprimer definitivement ce client ? Cette action est irreversible.')) {
-                if (window.confirm('Etes-vous vraiment sur ? Toutes les donnees seront perdues.')) {
-                  fetch(API_URL + '/api/admin/clients/' + client.id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } })
+              // Suppression conforme APDP : anonymisation + effacement des fichiers (meme traitement que dans l'app)
+              if (window.confirm('Supprimer le compte et ses donnees personnelles ?\n\nProfil anonymise, photos et pieces d identite effacees, missions ouvertes annulees. Action irreversible.\n\nA utiliser notamment pour les demandes recues par e-mail ou WhatsApp (verifier d abord l identite du demandeur).')) {
+                if (window.confirm('Confirmer la suppression definitive ?')) {
+                  fetch(API_URL + '/api/admin/users/' + client.id + '/supprimer-donnees', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                     .then(r => r.json())
-                    .then(d => { if (d.success) { alert('Client supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); });
+                    .then(d => { if (d.success) { alert('Compte et donnees supprimes'); onClose(); window.location.reload(); } else alert('Erreur : ' + d.error); });
                 }
               }
             }} style={{ backgroundColor: '#fff', color: '#E74C3C', border: '1px solid #E74C3C', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
-              Supprimer definitivement
+              Supprimer le compte et les donnees
             </button>
           </div>
         </div>

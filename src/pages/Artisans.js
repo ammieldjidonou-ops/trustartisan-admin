@@ -317,7 +317,14 @@ function DossierModal({ artisan, onClose, onAction }) {
           )}
           {statut === "actif" && <button style={{ ...styles.btnAction, backgroundColor: "#fd7e14" }} onClick={() => setActionEnCours("suspendre")}>Suspendre le compte</button>}
           {statut === "suspendu" && <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>Reactiver le compte</button>}
-          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => { if (window.confirm('Supprimer definitivement cet artisan ? Action irreversible.')) { fetch(API_URL + '/api/admin/artisans/' + artisan.id, { method: 'DELETE' }).then(r => r.json()).then(d => { if (d.success) { alert('Artisan supprime'); onClose(); window.location.reload(); } else alert('Erreur: ' + d.error); }); } }}>Supprimer definitvement</button>
+          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => {
+            // Suppression conforme APDP : anonymisation + effacement photo, piece d identite, portfolio
+            if (window.confirm('Supprimer le compte et ses donnees personnelles ?\n\nProfil anonymise, photos et pieces d identite effacees, missions ouvertes annulees. Action irreversible.\n\nA utiliser notamment pour les demandes recues par e-mail ou WhatsApp (verifier d abord l identite du demandeur).') && window.confirm('Confirmer la suppression definitive ?')) {
+              fetch(API_URL + '/api/admin/users/' + artisan.id + '/supprimer-donnees', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+                .then(r => r.json())
+                .then(d => { if (d.success) { alert('Compte et donnees supprimes'); onClose(); window.location.reload(); } else alert('Erreur : ' + d.error); });
+            }
+          }}>Supprimer le compte et les donnees</button>
         </div>
       </Modal>
     </>
