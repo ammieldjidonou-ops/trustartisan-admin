@@ -74,22 +74,45 @@ export default function Missions() {
     if (!window.confirm('Annuler ' + ids.length + ' mission(s) expirée(s) ? Les clients recevront une notification.')) return;
     setAnnulationEnCours(true);
     try {
+      const reussies = [];
       for (const id of ids) {
-        await fetch(API_URL + '/api/missions/' + id + '/annuler', {
+        const r = await fetch(API_URL + '/api/admin/missions/' + id + '/annuler', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ raison: 'Mission expiree automatiquement - Aucun artisan disponible apres 5 jours. Merci de renouveler votre demande.' })
         });
+        const d = await r.json().catch(() => ({}));
+        if (d.success) reussies.push(id);
       }
-      setMissions(prev => prev.map(m => ids.includes(m.id) ? { ...m, status: 'cancelled' } : m));
+      setMissions(prev => prev.map(m => reussies.includes(m.id) ? { ...m, status: 'cancelled' } : m));
       setShowExpirees(false);
-      alert('Missions annulées avec succès. Les clients ont été notifiés.');
+      alert(reussies.length + ' mission(s) annulée(s) sur ' + ids.length + '. Les clients ont été notifiés.');
     } catch (e) {
       alert('Erreur lors de l annulation');
     } finally {
       setAnnulationEnCours(false);
     }
   };
+
+  // Suppression definitive (missions en attente ou annulees uniquement)
+  const supprimerMissions = async (ids) => {
+    if (!window.confirm('Supprimer définitivement ' + ids.length + ' mission(s) ? Les photos associées seront effacées. Action irréversible.')) return;
+    setAnnulationEnCours(true);
+    const reussies = []; const erreurs = [];
+    try {
+      for (const id of ids) {
+        const r = await fetch(API_URL + '/api/admin/missions/' + id, { method: 'DELETE' });
+        const d = await r.json().catch(() => ({}));
+        if (d.success) reussies.push(id); else erreurs.push(d.error || 'Erreur');
+      }
+      setMissions(prev => prev.filter(m => !reussies.includes(m.id)));
+      setSelected(null);
+      alert(reussies.length + ' mission(s) supprimée(s)' + (erreurs.length ? '. Échecs : ' + erreurs[0] : '.'));
+    } finally {
+      setAnnulationEnCours(false);
+    }
+  };
+  const missionsAnnulees = missions.filter(m => m.status === 'cancelled');
 
   const filtres = ['tous', 'posted', 'in_progress', 'completed', 'validated', 'cancelled', 'disputed'];
 
@@ -204,8 +227,18 @@ export default function Missions() {
             <div style={{ marginBottom: 16 }}>
               <button onClick={() => annulerMissionsExpirees(missionsExpirees.map(m => m.id))} disabled={annulationEnCours}
                 style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginRight: 10 }}>
-                {annulationEnCours ? 'Annulation...' : 'Tout annuler (' + missionsExpirees.length + ')'}
+                {annulationEnCours ? 'Traitement...' : 'Tout annuler (' + missionsExpirees.length + ')'}
               </button>
+              <button onClick={() => supprimerMissions(missionsExpirees.map(m => m.id))} disabled={annulationEnCours}
+                style={{ backgroundColor: '#fff', color: '#E74C3C', border: '1px solid #E74C3C', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600, marginRight: 10 }}>
+                Tout supprimer ({missionsExpirees.length})
+              </button>
+              {missionsAnnulees.length > 0 && (
+                <button onClick={() => supprimerMissions(missionsAnnulees.map(m => m.id))} disabled={annulationEnCours}
+                  style={{ backgroundColor: '#fff', color: '#888', border: '1px solid #ccc', borderRadius: 8, padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+                  Supprimer les missions annulées ({missionsAnnulees.length})
+                </button>
+              )}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead style={{ backgroundColor: '#f8f9fa' }}>
@@ -230,6 +263,10 @@ export default function Missions() {
                         <button onClick={() => annulerMissionsExpirees([m.id])} disabled={annulationEnCours}
                           style={{ backgroundColor: '#E74C3C', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12 }}>
                           Annuler
+                        </button>
+                        <button onClick={() => supprimerMissions([m.id])} disabled={annulationEnCours}
+                          style={{ backgroundColor: '#fff', color: '#E74C3C', border: '1px solid #E74C3C', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', fontSize: 12, marginLeft: 6 }}>
+                          Supprimer
                         </button>
                       </td>
                     </tr>

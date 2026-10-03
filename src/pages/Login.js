@@ -17,7 +17,7 @@ export default function Login({ onLogin }) {
   const changerMotDePasse = async () => {
     if (!ancienMdp || !nouveauMdp || !confirmMdp) { setMsgMdp('Tous les champs sont requis'); return; }
     if (nouveauMdp !== confirmMdp) { setMsgMdp('Les mots de passe ne correspondent pas'); return; }
-    if (nouveauMdp.length < 8) { setMsgMdp('Minimum 8 caracteres'); return; }
+    if (nouveauMdp.length < 12) { setMsgMdp('Minimum 12 caracteres'); return; }
     setLoadingMdp(true);
     try {
       const token = localStorage.getItem('admin_token');
@@ -36,14 +36,14 @@ export default function Login({ onLogin }) {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) { setErreur('Email et mot de passe requis'); return; }
+    if (!email || !password) { setErreur('Identifiant et mot de passe requis'); return; }
     setLoading(true);
     setErreur('');
     try {
       const response = await fetch(API_URL + '/api/admin-auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ identifiant: email.trim(), password })
       });
       const data = await response.json();
       if (data.success) {
@@ -97,10 +97,12 @@ export default function Login({ onLogin }) {
         )}
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6 }}>Email</label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6 }}>Identifiant TrustArtisan (ou e-mail)</label>
           <input
-            type="email"
-            placeholder="admin@trustartisan.bj"
+            type="text"
+            autoComplete="username"
+            autoCapitalize="none"
+            placeholder="ex. ammiel.admin"
             value={email}
             onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLogin()}
