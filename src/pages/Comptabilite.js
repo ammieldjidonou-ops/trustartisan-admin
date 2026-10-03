@@ -49,7 +49,7 @@ export default function Comptabilite() {
     if (!data) return;
     const rows = [
       ['Date', 'Type', 'Libellé', 'Montant (FCFA)'],
-      ...data.commissions.map(c => [c.date?.split('T')[0], 'Commission', c.detail, c.montant]),
+      ...data.commissions.map(c => [c.date?.split('T')[0], 'Encaissement', c.detail, c.montant]),
       ...data.depenses.map(d => [d.date, 'Dépense - ' + d.categorie, d.libelle, -d.montant]),
     ];
     const csv = rows.map(r => r.join(';')).join('\n');
@@ -63,7 +63,7 @@ export default function Comptabilite() {
   const stats = data?.stats || {};
   const depensesFiltrees = (data?.depenses || []).filter(d => filtreDepense === 'toutes' || d.categorie === filtreDepense);
 
-  // Regrouper commissions par mois
+  // Regrouper les encaissements par mois
   const parMois = {};
   (data?.commissions || []).forEach(c => {
     const mois = c.date ? c.date.substring(0, 7) : 'Inconnu';
@@ -85,10 +85,10 @@ export default function Comptabilite() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { label: 'Total Commissions', value: (stats.total_commissions || 0).toLocaleString('fr-FR') + ' FCFA', color: '#1D9E75', bg: '#E1F5EE' },
+          { label: 'Total encaissé', value: (stats.total_commissions || 0).toLocaleString('fr-FR') + ' FCFA', color: '#1D9E75', bg: '#E1F5EE' },
           { label: 'Total Dépenses', value: (stats.total_depenses || 0).toLocaleString('fr-FR') + ' FCFA', color: '#E74C3C', bg: '#FEF0EE' },
           { label: 'Résultat Net', value: (stats.resultat_net || 0).toLocaleString('fr-FR') + ' FCFA', color: stats.resultat_net >= 0 ? '#1D9E75' : '#E74C3C', bg: stats.resultat_net >= 0 ? '#E1F5EE' : '#FEF0EE' },
-          { label: 'Missions payées', value: stats.nb_missions_payees || 0, color: '#0066CC', bg: '#EEF4FF' },
+          { label: 'Paiements encaissés', value: stats.nb_missions_payees || 0, color: '#0066CC', bg: '#EEF4FF' },
           { label: 'Artisans actifs', value: stats.nb_artisans_actifs || 0, color: '#F5A623', bg: '#FEF6E7' },
         ].map((s, i) => (
           <div key={i} style={{ backgroundColor: s.bg, borderRadius: 12, padding: 16, textAlign: 'center' }}>
@@ -100,7 +100,7 @@ export default function Comptabilite() {
 
       {/* Onglets */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-        {[['bilan', '📊 Bilan mensuel'], ['commissions', '✅ Commissions'], ['depenses', '💸 Dépenses']].map(([key, label]) => (
+        {[['bilan', '📊 Bilan mensuel'], ['commissions', '✅ Encaissements'], ['depenses', '💸 Dépenses']].map(([key, label]) => (
           <button key={key} onClick={() => setOnglet(key)}
             style={{ padding: '8px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
               backgroundColor: onglet === key ? '#1D9E75' : '#f0f0f0', color: onglet === key ? '#fff' : '#555' }}>
@@ -114,7 +114,7 @@ export default function Comptabilite() {
         <div style={{ backgroundColor: '#fff', borderRadius: 12, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}>
           <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>Commissions par mois</h3>
           {Object.keys(parMois).length === 0 ? (
-            <p style={{ color: '#aaa', textAlign: 'center', padding: 40 }}>Aucune commission enregistrée pour l instant</p>
+            <p style={{ color: '#aaa', textAlign: 'center', padding: 40 }}>Aucun encaissement pour l'instant</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr style={{ backgroundColor: '#f8f9fa' }}>
@@ -152,7 +152,7 @@ export default function Comptabilite() {
             </tr></thead>
             <tbody>
               {(data?.commissions || []).length === 0 ? (
-                <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>Aucune commission pour l instant</td></tr>
+                <tr><td colSpan={3} style={{ padding: 40, textAlign: 'center', color: '#aaa' }}>Aucun encaissement pour l'instant</td></tr>
               ) : (data?.commissions || []).map((c, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
                   <td style={{ padding: '12px 16px', fontSize: 13, color: '#888' }}>{c.date ? new Date(c.date).toLocaleDateString('fr-FR') : '-'}</td>

@@ -477,9 +477,8 @@ export default function Dashboard() {
           <p style={{ color: '#888', fontSize: 13, marginBottom: 20 }}>Activez ou desactivez les fonctionnalites payantes</p>
           {[
             { key: 'periode_gratuite', label: 'Periode gratuite', desc: 'Desactivez pour lancer la monetisation', color: '#F5A623' },
-            { key: 'deblocage_contact_actif', label: 'Deblocage contact (' + monetisation.prix_contact_unique.toLocaleString('fr-FR') + ' FCFA)', desc: 'Client paie pour voir le numero de l artisan', color: '#1D9E75' },
-            { key: 'abonnement_artisan_actif', label: 'Abonnement artisan (' + monetisation.prix_abonnement_mensuel.toLocaleString('fr-FR') + ' FCFA/mois)', desc: 'Artisans paient pour la visibilite premium', color: '#1D9E75' },
-            { key: 'commission_actif', label: 'Commission ' + monetisation.taux_commission + '%', desc: 'Active le prelevement automatique', color: '#E74C3C' },
+            { key: 'deblocage_contact_actif', label: 'Déblocage de contact payant (' + Number(monetisation.prix_contact_unique || 0).toLocaleString('fr-FR') + ' FCFA)', desc: 'Le client paie (MTN MoMo) pour obtenir le numéro d’un artisan. Prix : Encaissements → Tarifs', color: '#1D9E75' },
+            { key: 'abonnement_artisan_actif', label: 'Abonnement artisan Pro (' + Number(monetisation.prix_abonnement_mensuel || 0).toLocaleString('fr-FR') + ' FCFA/mois)', desc: 'Les abonnés passent en tête des recherches. Prix : Encaissements → Tarifs', color: '#1D9E75' },
           ].map(({ key, label, desc, color }) => (
             <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #eee' }}>
               <div>
