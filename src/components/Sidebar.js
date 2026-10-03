@@ -8,6 +8,7 @@ const MENU = [
   { path: '/missions', icon: '📋', label: 'Missions', roles: ['super_admin', 'moderateur', 'validateur'] },
   { path: '/paiements', icon: '💰', label: 'Paiements', roles: ['super_admin'] },
   { path: '/collaborateurs', icon: '👥', label: 'Collaborateurs', roles: ['super_admin'] },
+  { path: '/parrainages', icon: '🤝', label: 'Parrainages', roles: ['super_admin', 'moderateur'] },
   { path: '/signalements', icon: '🚨', label: 'Signalements', roles: ['super_admin', 'moderateur'] },
   { path: '/notifications', icon: '🔔', label: 'Notifications', roles: ['super_admin'] },
   { path: '/comptabilite', icon: '📒', label: 'Comptabilite', roles: ['super_admin'] },

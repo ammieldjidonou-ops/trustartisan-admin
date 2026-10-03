@@ -12,6 +12,7 @@ import Notifications from './pages/Notifications';
 import Comptabilite from './pages/Comptabilite';
 import CommunityManager from './pages/CommunityManager';
 import CalendrierEditorial from './pages/CalendrierEditorial';
+import Parrainages from './pages/Parrainages';
 import Login from './pages/Login';
 import './App.css';
 
@@ -85,6 +86,7 @@ export default function App() {
             <Route path="/missions" element={<Missions admin={admin} />} />
             <Route path="/paiements" element={<Paiements admin={admin} />} />
             <Route path="/collaborateurs" element={<Collaborateurs admin={admin} />} />
+            <Route path="/parrainages" element={<Parrainages admin={admin} />} />
             <Route path="/signalements" element={<Signalements admin={admin} />} />
             <Route path="/notifications" element={<Notifications admin={admin} />} />
             <Route path="/comptabilite" element={<Comptabilite admin={admin} />} />
