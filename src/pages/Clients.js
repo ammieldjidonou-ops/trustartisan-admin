@@ -4,6 +4,7 @@ const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.u
 
 function ModalClient({ client, onClose }) {
   const [stats, setStats] = useState(null);
+  const [entreprise, setEntreprise] = useState({ sites: [], nb_favoris: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
@@ -11,7 +12,7 @@ function ModalClient({ client, onClose }) {
     setLoadingStats(true);
     fetch(API_URL + '/api/admin/clients/' + client.id + '/stats')
       .then(r => r.json())
-      .then(data => { if (data.success) setStats(data.stats); })
+      .then(data => { if (data.success) { setStats(data.stats); setEntreprise({ sites: data.sites || [], nb_favoris: data.nb_favoris || 0 }); } })
       .catch(() => {})
       .finally(() => setLoadingStats(false));
   }, [client]);
@@ -29,6 +30,7 @@ function ModalClient({ client, onClose }) {
           </div>
           <div>
             <h2 style={{ margin: 0, fontSize: 20 }}>{client.full_name || ((client.prenom || '') + ' ' + (client.nom || ''))}</h2>
+            {client.type_compte === 'entreprise' && <div style={{ color: '#0F6E56', fontWeight: 600, fontSize: 13, margin: '2px 0 4px' }}>{client.raison_sociale}</div>}
             <span style={{ backgroundColor: client.statut === 'actif' ? '#E1F5EE' : '#FEF0EE', color: client.statut === 'actif' ? '#0F6E56' : '#E74C3C', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
               {client.statut || 'inconnu'}
             </span>
@@ -55,6 +57,37 @@ function ModalClient({ client, onClose }) {
             ))}
           </tbody>
         </table>
+
+        {client.type_compte === 'entreprise' && (
+          <>
+            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Entreprise</h3>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 12 }}>
+              <tbody>
+                {[
+                  ['Raison sociale', client.raison_sociale || '-'],
+                  ['IFU', client.ifu || '-'],
+                  ['Secteur', client.secteur_activite || '-'],
+                  ['Taille', client.taille_entreprise ? client.taille_entreprise + ' personnes' : '-'],
+                  ['Artisans favoris', loadingStats ? '...' : entreprise.nb_favoris],
+                ].map(([label, value]) => (
+                  <tr key={label} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                    <td style={{ padding: '8px 0', color: '#888', fontSize: 13, width: 140 }}>{label}</td>
+                    <td style={{ padding: '8px 0', fontWeight: 500, fontSize: 13 }}>{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 13, color: '#555', fontWeight: 600, marginBottom: 6 }}>Sites ({loadingStats ? '...' : entreprise.sites.length})</div>
+            {!loadingStats && entreprise.sites.length === 0 && <p style={{ color: '#aaa', fontSize: 13, marginTop: 0 }}>Aucun site declare.</p>}
+            {entreprise.sites.map(st => (
+              <div key={st.id} style={{ backgroundColor: '#f8f9fa', borderRadius: 8, padding: '8px 12px', marginBottom: 6, fontSize: 13 }}>
+                <strong>{st.nom}</strong> - {st.commune}{st.adresse ? ', ' + st.adresse : ''}
+                {(st.contact_nom || st.contact_tel) && <div style={{ color: '#888', fontSize: 12 }}>Contact : {[st.contact_nom, st.contact_tel].filter(Boolean).join(' - ')}</div>}
+              </div>
+            ))}
+            <div style={{ height: 18 }} />
+          </>
+        )}
 
         <h3 style={{ fontSize: 14, fontWeight: 700, color: '#555', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Statistiques</h3>
         {loadingStats ? (
@@ -132,6 +165,7 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState(null);
   const [search, setSearch] = useState('');
+  const [type, setType] = useState('tous'); // tous | particulier | entreprise
   const [selected, setSelected] = useState(null);
 
   useEffect(() => {
@@ -145,9 +179,13 @@ export default function Clients() {
       .finally(() => setLoading(false));
   }, []);
 
+  const estEntreprise = (c) => c.type_compte === 'entreprise';
   const filtres = clients.filter(c => {
+    if (type === 'entreprise' && !estEntreprise(c)) return false;
+    if (type === 'particulier' && estEntreprise(c)) return false;
     const q = search.toLowerCase();
     return (
+      (c.raison_sociale || '').toLowerCase().includes(q) ||
       (c.full_name || '').toLowerCase().includes(q) ||
       (c.prenom || '').toLowerCase().includes(q) ||
       (c.nom || '').toLowerCase().includes(q) ||
@@ -172,7 +210,7 @@ export default function Clients() {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         <div className="card" style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 28, fontWeight: 700, color: '#0066CC' }}>{loading ? '...' : clients.length}</div>
           <div style={{ color: '#888', fontSize: 13 }}>Total clients</div>
@@ -191,15 +229,24 @@ export default function Clients() {
           </div>
           <div style={{ color: '#888', fontSize: 13 }}>Nouveaux ce mois</div>
         </div>
+        <div className="card" style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => setType('entreprise')} title="Afficher les comptes entreprise">
+          <div style={{ fontSize: 28, fontWeight: 700, color: '#0F6E56' }}>{loading ? '...' : clients.filter(estEntreprise).length}</div>
+          <div style={{ color: '#888', fontSize: 13 }}>Comptes entreprise</div>
+        </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
+      <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 12 }}>
         <input
-          placeholder="Rechercher un client..."
+          placeholder="Rechercher un client ou une entreprise..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ width: '100%' }}
+          style={{ flex: 1 }}
         />
+        <select value={type} onChange={e => setType(e.target.value)} style={{ minWidth: 180 }}>
+          <option value="tous">Tous les clients</option>
+          <option value="particulier">Particuliers</option>
+          <option value="entreprise">Entreprises</option>
+        </select>
       </div>
 
       <div className="card">
@@ -225,6 +272,12 @@ export default function Clients() {
                 <tr key={c.id}>
                   <td style={{ fontWeight: 600 }}>
                     {c.full_name || ((c.prenom || '') + ' ' + (c.nom || '')).trim() || '-'}
+                    {estEntreprise(c) && (
+                      <div style={{ marginTop: 2 }}>
+                        <span style={{ backgroundColor: '#E1F5EE', color: '#0F6E56', padding: '1px 8px', borderRadius: 10, fontSize: 11, fontWeight: 700 }}>Entreprise</span>
+                        <span style={{ color: '#555', fontSize: 12, fontWeight: 500, marginLeft: 6 }}>{c.raison_sociale}</span>
+                      </div>
+                    )}
                   </td>
                   <td style={{ color: '#888' }}>{c.phone || '-'}</td>
                   <td>{c.commune || '-'}</td>
