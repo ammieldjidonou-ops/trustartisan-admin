@@ -152,12 +152,13 @@ export default function Dashboard() {
     ]).then(([artisansData, clientsData]) => {
       const artisans = artisansData.artisans || [];
       const clients = clientsData.clients || [];
+      const clientsVisibles = clientsData.success !== false; // role validateur : pas d'acces a la liste des clients
       const now = new Date();
       setStats({
         artisans_actifs: artisans.filter(a => a.statut === 'actif').length,
         artisans_total: artisans.length,
-        clients_total: clients.length,
-        clients_actifs: clients.filter(c => c.statut === 'actif').length,
+        clients_total: clientsVisibles ? clients.length : '—',
+        clients_actifs: clientsVisibles ? clients.filter(c => c.statut === 'actif').length : '—',
         en_attente: artisans.filter(a => a.statut === 'en_attente_validation').length,
         nouveaux_artisans_mois: artisans.filter(a => {
           const d = new Date(a.created_at);

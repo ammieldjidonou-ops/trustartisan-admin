@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
 
+// Actions sensibles (numero, suppression) : reservees au super administrateur (controle aussi fait par le serveur)
+const estSuperAdmin = () => { try { return JSON.parse(localStorage.getItem('admin_user') || '{}').role === 'super_admin'; } catch (e) { return false; } };
 function ModalClient({ client, onClose }) {
   const [stats, setStats] = useState(null);
   const [entreprise, setEntreprise] = useState({ sites: [], nb_favoris: 0 });
@@ -141,7 +143,7 @@ function ModalClient({ client, onClose }) {
             }} style={{ backgroundColor: client.statut === 'actif' ? '#FEF0EE' : '#E1F5EE', color: client.statut === 'actif' ? '#E74C3C' : '#1D9E75', border: 'none', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
               {client.statut === 'actif' ? 'Suspendre le compte' : 'Reactiver le compte'}
             </button>
-            <button onClick={() => {
+            {estSuperAdmin() && <button onClick={() => {
               // Suppression conforme APDP : anonymisation + effacement des fichiers (meme traitement que dans l'app)
               if (window.confirm('Supprimer le compte et ses donnees personnelles ?\n\nProfil anonymise, photos et pieces d identite effacees, missions ouvertes annulees. Action irreversible.\n\nA utiliser notamment pour les demandes recues par e-mail ou WhatsApp (verifier d abord l identite du demandeur).')) {
                 if (window.confirm('Confirmer la suppression definitive ?')) {
@@ -152,7 +154,7 @@ function ModalClient({ client, onClose }) {
               }
             }} style={{ backgroundColor: '#fff', color: '#E74C3C', border: '1px solid #E74C3C', borderRadius: 8, padding: '10px 20px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
               Supprimer le compte et les donnees
-            </button>
+            </button>}
           </div>
         </div>
       </div>

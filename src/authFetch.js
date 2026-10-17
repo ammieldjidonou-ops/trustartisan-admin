@@ -8,7 +8,8 @@ const fetchOriginal = window.fetch.bind(window);
 
 window.fetch = async (input, init = {}) => {
   const url = typeof input === 'string' ? input : (input && input.url) || '';
-  if (!url.startsWith(API_URL)) return fetchOriginal(input, init);
+  // Jeton ajoute uniquement pour l'API (prefixe exact avec "/" : https://api...app.autre-site.com est exclu)
+  if (!(url === API_URL || url.startsWith(API_URL + '/'))) return fetchOriginal(input, init);
 
   const headers = new Headers(init.headers || {});
   const token = localStorage.getItem('admin_token');

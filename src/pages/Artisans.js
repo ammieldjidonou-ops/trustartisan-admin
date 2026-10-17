@@ -8,6 +8,8 @@ const STATUT_COLORS = {
   suspendu: { bg: "#f8d7da", color: "#721c24", label: "Suspendu" },
 };
 
+// Actions sensibles (numero, suppression) : reservees au super administrateur (controle aussi fait par le serveur)
+const estSuperAdmin = () => { try { return JSON.parse(localStorage.getItem('admin_user') || '{}').role === 'super_admin'; } catch (e) { return false; } };
 function Lightbox({ src, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, cursor: "zoom-out" }}>
@@ -201,10 +203,10 @@ function DossierModal({ artisan, onClose, onAction }) {
           <InfoItem label="Telephone" value={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               {artisan.phone || '-'}
-              <button onClick={() => setChangePhoneFor(artisan)}
+              {estSuperAdmin() && <button onClick={() => setChangePhoneFor(artisan)}
                 style={{ padding: '2px 8px', fontSize: 11, borderRadius: 4, border: '1px solid #1D9E75', backgroundColor: '#fff', color: '#1D9E75', cursor: 'pointer' }}>
                 Modifier
-              </button>
+              </button>}
             </span>
           } />
           <InfoItem label="Commune" value={artisan.commune || "-"} />
@@ -317,14 +319,14 @@ function DossierModal({ artisan, onClose, onAction }) {
           )}
           {statut === "actif" && <button style={{ ...styles.btnAction, backgroundColor: "#fd7e14" }} onClick={() => setActionEnCours("suspendre")}>Suspendre le compte</button>}
           {statut === "suspendu" && <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("reactiver")}>Reactiver le compte</button>}
-          <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => {
+          {estSuperAdmin() && <button style={{ ...styles.btnAction, backgroundColor: '#E74C3C', marginTop: '8px' }} onClick={() => {
             // Suppression conforme APDP : anonymisation + effacement photo, piece d identite, portfolio
             if (window.confirm('Supprimer le compte et ses donnees personnelles ?\n\nProfil anonymise, photos et pieces d identite effacees, missions ouvertes annulees. Action irreversible.\n\nA utiliser notamment pour les demandes recues par e-mail ou WhatsApp (verifier d abord l identite du demandeur).') && window.confirm('Confirmer la suppression definitive ?')) {
               fetch(API_URL + '/api/admin/users/' + artisan.id + '/supprimer-donnees', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(r => r.json())
                 .then(d => { if (d.success) { alert('Compte et donnees supprimes'); onClose(); window.location.reload(); } else alert('Erreur : ' + d.error); });
             }
-          }}>Supprimer le compte et les donnees</button>
+          }}>Supprimer le compte et les donnees</button>}
         </div>
       </Modal>
     </>
