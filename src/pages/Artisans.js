@@ -10,6 +10,22 @@ const STATUT_COLORS = {
 
 // Actions sensibles (numero, suppression) : reservees au super administrateur (controle aussi fait par le serveur)
 const estSuperAdmin = () => { try { return JSON.parse(localStorage.getItem('admin_user') || '{}').role === 'super_admin'; } catch (e) { return false; } };
+// Moderation du contenu (photos, description) : moderateur ou super administrateur (controle aussi fait par le serveur)
+const peutModerer = () => { try { return ['moderateur', 'super_admin'].includes(JSON.parse(localStorage.getItem('admin_user') || '{}').role); } catch (e) { return false; } };
+
+// Appel d'une action de moderation ; renvoie la reponse du serveur ou null (erreur deja affichee)
+async function moderer(methode, chemin, corps) {
+  try {
+    const r = await fetch(API_URL + '/api/admin/artisans/' + chemin, { method: methode, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps || {}) });
+    const d = await r.json();
+    if (!d.success) { alert('Action impossible : ' + (d.error || 'erreur')); return null; }
+    return d;
+  } catch (e) { alert('Erreur reseau'); return null; }
+}
+const listePortfolio = (v) => {
+  try { const j = JSON.parse(v); if (Array.isArray(j)) return j.map(String).filter(u => u.startsWith('http')); } catch (e) { /* format "url1,url2" */ }
+  return String(v || '').split(',').map(u => u.trim()).filter(u => u.startsWith('http'));
+};
 function Lightbox({ src, onClose }) {
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.9)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000, cursor: "zoom-out" }}>
@@ -147,7 +163,29 @@ function PieceIdentite({ artisanId, onZoom }) {
         style={{ width: "100%", maxHeight: "180px", objectFit: "contain", borderRadius: "8px", border: "1px solid #eee", cursor: "zoom-in" }} />;
 }
 
-function DossierModal({ artisan, onClose, onAction }) {
+function DossierModal({ artisan: artisanInitial, onClose, onAction, onMaj }) {
+  // Copie locale : les retraits de photos / corrections de description s'affichent tout de suite
+  const [artisan, setArtisan] = useState(artisanInitial);
+  const maj = (champs) => { setArtisan(a => ({ ...a, ...champs })); if (onMaj) onMaj(artisan.id, champs); };
+  const [editionDesc, setEditionDesc] = useState(null); // texte en cours de modification, ou null
+  const moderateur = peutModerer();
+
+  const retirerPhoto = async (url) => {
+    const motif = window.prompt('Retirer cette photo des realisations ?\n\nMotif transmis a l artisan (facultatif) : photo floue, sans rapport avec le metier, contenu inapproprie...', '');
+    if (motif === null) return;
+    const d = await moderer('POST', artisan.id + '/portfolio/retirer', { url, motif });
+    if (d) maj({ portfolio: (d.portfolio || []).join(',') || null });
+  };
+  const retirerPhotoProfil = async () => {
+    const motif = window.prompt('Retirer la photo de profil ?\n\nMotif transmis a l artisan (facultatif) :', 'La photo doit montrer clairement votre visage');
+    if (motif === null) return;
+    const d = await moderer('POST', artisan.id + '/photo-profil/retirer', { motif });
+    if (d) maj({ photo_profil: null });
+  };
+  const enregistrerDescription = async (texte) => {
+    const d = await moderer('PUT', artisan.id + '/description', { description: texte });
+    if (d) { maj({ description: d.description, alerte_coordonnees: false }); setEditionDesc(null); }
+  };
   const [actionEnCours, setActionEnCours] = useState(null);
   const [lightbox, setLightbox] = useState(null);
   const [changePhoneFor, setChangePhoneFor] = useState(null);
@@ -166,9 +204,7 @@ function DossierModal({ artisan, onClose, onAction }) {
   const statut = artisan.statut || "en_attente_validation";
   const statutInfo = STATUT_COLORS[statut] || STATUT_COLORS.en_attente_validation;
 
-  const portfolioUrls = artisan.portfolio
-    ? artisan.portfolio.split(",").filter(u => u.trim().startsWith("http"))
-    : [];
+  const portfolioUrls = listePortfolio(artisan.portfolio);
 
   if (actionEnCours) {
     return (
@@ -196,6 +232,9 @@ function DossierModal({ artisan, onClose, onAction }) {
           <div>
             <h3 style={{ margin: "0 0 6px", fontSize: "20px" }}>{artisan.full_name}</h3>
             <span style={{ ...styles.statutBadge, backgroundColor: statutInfo.bg, color: statutInfo.color }}>{statutInfo.label}</span>
+            {moderateur && artisan.photo_profil && (
+              <button onClick={retirerPhotoProfil} style={{ ...styles.btnLien, display: "block", marginTop: 8 }}>Retirer la photo de profil</button>
+            )}
           </div>
         </div>
 
@@ -217,10 +256,33 @@ function DossierModal({ artisan, onClose, onAction }) {
           <InfoItem label="Email" value={artisan.email || "-"} />
         </div>
 
-        {artisan.description && (
+        {(artisan.description || editionDesc !== null) && (
           <div style={styles.section}>
-            <label style={styles.label}>Description</label>
-            <p style={styles.descText}>{artisan.description}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+              <label style={{ ...styles.label, marginBottom: 0 }}>Description</label>
+              {artisan.alerte_coordonnees && <span style={styles.alerte}>Numero ou e-mail detecte</span>}
+              {moderateur && editionDesc === null && (
+                <span style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+                  {artisan.alerte_coordonnees && (
+                    <button style={{ ...styles.btnPetit, backgroundColor: "#E74C3C", color: "#fff", borderColor: "#E74C3C" }}
+                      onClick={() => enregistrerDescription(artisan.description || '')}>Retirer les coordonnees</button>
+                  )}
+                  <button style={styles.btnPetit} onClick={() => setEditionDesc(artisan.description || '')}>Modifier</button>
+                </span>
+              )}
+            </div>
+            {editionDesc === null ? (
+              <p style={{ ...styles.descText, whiteSpace: "pre-wrap" }}>{artisan.description}</p>
+            ) : (
+              <>
+                <textarea style={styles.textarea} rows={6} maxLength={2000} value={editionDesc} onChange={e => setEditionDesc(e.target.value)} />
+                <p style={{ fontSize: 12, color: "#888", margin: "6px 0" }}>Les numeros, e-mails et liens WhatsApp sont retires automatiquement a l enregistrement.</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button style={{ ...styles.btnPetit, backgroundColor: "#1D9E75", color: "#fff", borderColor: "#1D9E75" }} onClick={() => enregistrerDescription(editionDesc)}>Enregistrer</button>
+                  <button style={styles.btnPetit} onClick={() => setEditionDesc(null)}>Annuler</button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -300,11 +362,16 @@ function DossierModal({ artisan, onClose, onAction }) {
 
         {portfolioUrls.length > 0 && (
           <div style={styles.section}>
-            <label style={styles.label}>Portfolio ({portfolioUrls.length} photo{portfolioUrls.length > 1 ? "s" : ""})</label>
+            <label style={styles.label}>Portfolio ({portfolioUrls.length} photo{portfolioUrls.length > 1 ? "s" : ""}){moderateur ? <span style={{ fontWeight: 400, color: "#999" }}> · touchez &times; pour retirer une photo indesirable</span> : null}</label>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               {portfolioUrls.map((url, i) => (
-                <img key={i} src={url} alt={"portfolio " + i} onClick={() => setLightbox(url)}
-                  style={{ width: "90px", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee", cursor: "zoom-in" }} />
+                <div key={url} style={{ position: "relative" }}>
+                  <img src={url} alt={"portfolio " + i} onClick={() => setLightbox(url)}
+                    style={{ width: "90px", height: "90px", objectFit: "cover", borderRadius: "8px", border: "1px solid #eee", cursor: "zoom-in", display: "block" }} />
+                  {moderateur && (
+                    <button onClick={() => retirerPhoto(url)} title="Retirer cette photo" aria-label="Retirer cette photo" style={styles.btnRetirerPhoto}>&times;</button>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -374,10 +441,11 @@ export default function Artisans() {
     { key: "en_attente_validation", label: "En attente" },
     { key: "actif", label: "Actifs" },
     { key: "suspendu", label: "Suspendus" },
+    { key: "coordonnees", label: "Numero en description (" + artisans.filter(a => a.alerte_coordonnees).length + ")" },
   ];
 
   const artisansFiltres = artisans.filter(a => {
-    const matchFiltre = filtre === "tous" || a.statut === filtre;
+    const matchFiltre = filtre === "tous" || a.statut === filtre || (filtre === "coordonnees" && a.alerte_coordonnees);
     const matchRecherche = !recherche ||
       (a.full_name || "").toLowerCase().includes(recherche.toLowerCase()) ||
       (a.phone || "").includes(recherche) ||
@@ -389,7 +457,8 @@ export default function Artisans() {
 
   return (
     <div style={styles.container}>
-      {dossierOuvert && <DossierModal artisan={dossierOuvert} onClose={() => setDossierOuvert(null)} onAction={handleAction} />}
+      {dossierOuvert && <DossierModal artisan={dossierOuvert} onClose={() => setDossierOuvert(null)} onAction={handleAction}
+        onMaj={(id, champs) => setArtisans(prev => prev.map(a => a.id === id ? { ...a, ...champs } : a))} />}
       <div style={styles.header}>
         <h1 style={styles.titre}>Gestion des Artisans</h1>
         <span style={styles.badge}>{artisans.length} artisans</span>
@@ -422,7 +491,7 @@ export default function Artisans() {
                   const statutInfo = STATUT_COLORS[a.statut] || STATUT_COLORS.en_attente_validation;
                   return (
                     <tr key={a.id} style={styles.tr}>
-                      <td style={styles.td}><strong>{a.full_name}</strong></td>
+                      <td style={styles.td}><strong>{a.full_name}</strong>{a.alerte_coordonnees && <span style={{ ...styles.alerte, marginLeft: 6 }} title="Numero ou e-mail dans la description">Numero</span>}</td>
                       <td style={styles.td}>{a.phone}</td>
                       <td style={styles.td}>{a.primary_specialty || "-"}</td>
                       <td style={styles.td}>{a.commune || "-"}</td>
@@ -450,7 +519,7 @@ const styles = {
   badge: { backgroundColor: "#1D9E75", color: "#fff", padding: "4px 12px", borderRadius: "20px", fontSize: "14px" },
   toolbar: { display: "flex", gap: "16px", marginBottom: "20px", flexWrap: "wrap" },
   search: { flex: 1, minWidth: "200px", padding: "10px 14px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px" },
-  filtres: { display: "flex", gap: "8px" },
+  filtres: { display: "flex", gap: "8px", flexWrap: "wrap" },
   filtreBtn: { padding: "8px 16px", borderRadius: "8px", border: "1px solid #ddd", cursor: "pointer", backgroundColor: "#fff", fontSize: "13px" },
   filtreBtnActif: { backgroundColor: "#1D9E75", color: "#fff", borderColor: "#1D9E75" },
   tableContainer: { backgroundColor: "#fff", borderRadius: "12px", overflow: "hidden", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" },
@@ -479,5 +548,9 @@ const styles = {
   btnAction: { color: "#fff", border: "none", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", fontSize: "14px", fontWeight: "600" },
   btnAnnuler: { backgroundColor: "#f8f9fa", color: "#555", border: "1px solid #ddd", padding: "10px 20px", borderRadius: "8px", cursor: "pointer", fontSize: "14px" },
   label: { display: "block", fontSize: "13px", fontWeight: "600", color: "#555", marginBottom: "8px" },
+  alerte: { backgroundColor: "#FDECEA", color: "#B42318", padding: "2px 8px", borderRadius: "10px", fontSize: "11px", fontWeight: "700" },
+  btnPetit: { padding: "4px 10px", fontSize: "12px", borderRadius: "6px", border: "1px solid #1D9E75", backgroundColor: "#fff", color: "#1D9E75", cursor: "pointer", fontWeight: "600" },
+  btnLien: { background: "none", border: "none", padding: 0, color: "#E74C3C", fontSize: "12px", cursor: "pointer", textDecoration: "underline" },
+  btnRetirerPhoto: { position: "absolute", top: "-8px", right: "-8px", width: "24px", height: "24px", borderRadius: "50%", border: "2px solid #fff", backgroundColor: "#E74C3C", color: "#fff", fontSize: "15px", lineHeight: "18px", cursor: "pointer", padding: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.3)" },
   textarea: { width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #ddd", fontSize: "14px", resize: "vertical", fontFamily: "inherit", boxSizing: "border-box" },
 };
