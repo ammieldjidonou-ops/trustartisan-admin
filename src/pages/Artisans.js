@@ -6,6 +6,7 @@ const STATUT_COLORS = {
   actif: { bg: "#d4edda", color: "#155724", label: "Actif" },
   en_attente_validation: { bg: "#fff3cd", color: "#856404", label: "En attente" },
   suspendu: { bg: "#f8d7da", color: "#721c24", label: "Suspendu" },
+  refuse: { bg: "#FDECEA", color: "#B42318", label: "A completer" },
 };
 
 // Actions sensibles (numero, suppression) : reservees au super administrateur (controle aussi fait par le serveur)
@@ -101,7 +102,7 @@ function ActionModal({ artisan, action, onClose, onConfirm }) {
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const configs = {
-    refuser: { titre: "Refuser le dossier", couleur: "#dc3545", label: "Refuser", placeholder: "Ex: Piece d identite illisible. Merci de retransmettre une photo claire...", obligatoire: true },
+    refuser: { titre: "Demander des corrections", couleur: "#dc3545", label: "Envoyer a l artisan", placeholder: "Ex: Votre photo de profil doit montrer clairement votre visage. Ajoutez aussi 2 photos de chantiers termines.", obligatoire: true },
     suspendre: { titre: "Suspendre le compte", couleur: "#fd7e14", label: "Suspendre", placeholder: "Ex: Plusieurs signalements recus...", obligatoire: true },
     valider: { titre: "Valider le dossier", couleur: "#1D9E75", label: "Valider", placeholder: "", obligatoire: false },
     reactiver: { titre: "Reactiver le compte", couleur: "#1D9E75", label: "Reactiver", placeholder: "", obligatoire: false },
@@ -117,9 +118,12 @@ function ActionModal({ artisan, action, onClose, onConfirm }) {
     <Modal titre={config.titre} onClose={onClose}>
       <div style={{ padding: "8px 0" }}>
         <p style={{ color: "#555", marginBottom: "16px" }}>Artisan : <strong>{artisan.full_name}</strong></p>
-        <label style={styles.label}>{config.obligatoire ? "Message SMS obligatoire *" : "Message SMS optionnel"}</label>
-        <textarea style={styles.textarea} rows={4} placeholder={config.placeholder} value={message} onChange={e => setMessage(e.target.value)} />
-        {config.obligatoire && <p style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>Ce message sera envoye par SMS au {artisan.phone}</p>}
+        {(action === "refuser" || action === "suspendre") && (<>
+          <label style={styles.label}>Message pour l artisan *</label>
+          <textarea style={styles.textarea} rows={4} placeholder={config.placeholder} value={message} onChange={e => setMessage(e.target.value)} />
+        </>)}
+        {action === "refuser" && <p style={{ fontSize: "12px", color: "#999", marginTop: "4px" }}>Le message s affiche dans l application de l artisan, avec la liste des elements a corriger et un bouton « Renvoyer mon dossier ». Il est aussi prevenu par notification et par SMS ({artisan.phone}).</p>}
+        {action === "valider" && <p style={{ fontSize: "13px", color: "#555" }}>L artisan sera prevenu par notification et par SMS ({artisan.phone}), et son profil deviendra visible par les clients.</p>}
         <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "flex-end" }}>
           <button style={styles.btnAnnuler} onClick={onClose}>Annuler</button>
           <button style={{ ...styles.btnAction, backgroundColor: config.couleur }} onClick={handleConfirm} disabled={loading}>
@@ -238,6 +242,17 @@ function DossierModal({ artisan: artisanInitial, onClose, onAction, onMaj }) {
           </div>
         </div>
 
+        {statut === "refuse" && (
+          <div style={{ backgroundColor: "#FDECEA", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13, color: "#7A271A" }}>
+            <strong>Corrections demandees :</strong> {artisan.motif_refus || "(aucun message enregistre)"}
+            <div style={{ marginTop: 4, color: "#B42318" }}>En attente des corrections de l artisan.</div>
+          </div>
+        )}
+        {statut === "en_attente_validation" && artisan.dossier_renvoye_at && (
+          <div style={{ backgroundColor: "#FFF3CD", borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13, color: "#664D03" }}>
+            Dossier corrige et renvoye par l artisan le {new Date(artisan.dossier_renvoye_at).toLocaleString("fr-FR")}.
+          </div>
+        )}
         <div style={styles.infoGrid}>
           <InfoItem label="Telephone" value={
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -378,10 +393,10 @@ function DossierModal({ artisan: artisanInitial, onClose, onAction, onMaj }) {
         )}
 
         <div style={styles.actionBar}>
-          {statut === "en_attente_validation" && (
+          {(statut === "en_attente_validation" || statut === "refuse") && (
             <>
               <button style={{ ...styles.btnAction, backgroundColor: "#1D9E75" }} onClick={() => setActionEnCours("valider")}>Valider le dossier</button>
-              <button style={{ ...styles.btnAction, backgroundColor: "#dc3545" }} onClick={() => setActionEnCours("refuser")}>Refuser le dossier</button>
+              <button style={{ ...styles.btnAction, backgroundColor: "#dc3545" }} onClick={() => setActionEnCours("refuser")}>{statut === "refuse" ? "Modifier la demande de corrections" : "Demander des corrections"}</button>
             </>
           )}
           {statut === "actif" && <button style={{ ...styles.btnAction, backgroundColor: "#fd7e14" }} onClick={() => setActionEnCours("suspendre")}>Suspendre le compte</button>}
@@ -431,7 +446,7 @@ export default function Artisans() {
       const data = await r.json();
       if (data.success) {
         const newStatut = action === "valider" ? "actif" : action === "refuser" ? "refuse" : action === "suspendre" ? "suspendu" : "actif";
-        setArtisans(prev => prev.map(a => a.id === id ? { ...a, statut: newStatut } : a));
+        setArtisans(prev => prev.map(a => a.id === id ? { ...a, statut: newStatut, ...(action === "refuser" ? { motif_refus: message } : {}), ...(action === "valider" ? { motif_refus: null } : {}) } : a));
       }
     } catch (e) { alert("Erreur reseau"); }
   };
@@ -440,6 +455,7 @@ export default function Artisans() {
     { key: "tous", label: "Tous" },
     { key: "en_attente_validation", label: "En attente" },
     { key: "actif", label: "Actifs" },
+    { key: "refuse", label: "A completer" },
     { key: "suspendu", label: "Suspendus" },
     { key: "coordonnees", label: "Numero en description (" + artisans.filter(a => a.alerte_coordonnees).length + ")" },
   ];
