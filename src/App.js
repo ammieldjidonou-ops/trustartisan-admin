@@ -15,6 +15,7 @@ import CalendrierEditorial from './pages/CalendrierEditorial';
 import Parrainages from './pages/Parrainages';
 import Encaissements from './pages/Encaissements';
 import Login from './pages/Login';
+import Securite from './pages/Securite';
 import './App.css';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-b97ed.up.railway.app';
@@ -79,6 +80,12 @@ export default function App() {
       <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f6fa' }}>
         <Sidebar open={sidebarOpen} setOpen={setSidebarOpen} admin={admin} onLogout={handleLogout} />
         <main style={{ flex: 1, marginLeft: sidebarOpen ? 250 : 70, transition: 'margin 0.3s', padding: 24 }}>
+          {admin.role === 'super_admin' && !admin.totp_actif && (
+            <div style={{ backgroundColor: '#FFF3CD', border: '1px solid #F5C451', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#664D03' }}>
+              🔐 Votre compte super administrateur n’est protégé que par un mot de passe.{' '}
+              <a href="/securite" style={{ color: '#0F6E56', fontWeight: 700 }}>Activer la double authentification</a>
+            </div>
+          )}
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/dashboard" element={<Dashboard admin={admin} />} />
@@ -94,6 +101,7 @@ export default function App() {
             <Route path="/comptabilite" element={<Comptabilite admin={admin} />} />
             <Route path="/community-manager" element={<CommunityManager admin={admin} />} />
             <Route path="/calendrier" element={<CalendrierEditorial admin={admin} />} />
+            <Route path="/securite" element={<Securite admin={admin} onMaj={setAdmin} />} />
           </Routes>
         </main>
       </div>

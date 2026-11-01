@@ -62,6 +62,15 @@ export default function Collaborateurs({ admin }) {
     } catch (e) {}
   };
 
+  const reinitialiser2fa = async (c) => {
+    if (!window.confirm('Réinitialiser la double authentification de ' + c.prenom + ' ' + c.nom + ' ?\n\nÀ faire uniquement s’il a perdu son téléphone et ses codes de secours : il pourra se reconnecter avec son seul mot de passe, puis devra la réactiver.')) return;
+    try {
+      const r = await fetch(API_URL + '/api/admin-auth/collaborateurs/' + c.id + '/reinitialiser-2fa', { method: 'POST', headers: { 'Authorization': 'Bearer ' + token } });
+      const d = await r.json();
+      if (!d.success) alert(d.error || 'Erreur'); else charger();
+    } catch (e) { alert('Erreur serveur'); }
+  };
+
   const formatDate = (iso) => iso ? new Date(iso).toLocaleDateString('fr-FR') : 'Jamais';
 
   const ROLE_COLORS = { super_admin: '#F5A623', moderateur: '#0066CC', validateur: '#1D9E75' };
@@ -133,6 +142,7 @@ export default function Collaborateurs({ admin }) {
                 <th>Role</th>
                 <th>Derniere connexion</th>
                 <th>Statut</th>
+                <th>2FA</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -151,6 +161,12 @@ export default function Collaborateurs({ admin }) {
                     <span style={{ backgroundColor: c.is_active ? '#E1F5EE' : '#f0f0f0', color: c.is_active ? '#0F6E56' : '#aaa', padding: '2px 10px', borderRadius: 10, fontSize: 12, fontWeight: 600 }}>
                       {c.is_active ? 'Actif' : 'Inactif'}
                     </span>
+                  </td>
+                  <td style={{ fontSize: 12 }}>
+                    {c.totp_actif ? <span style={{ color: '#0F6E56', fontWeight: 600 }}>Activée</span> : <span style={{ color: '#B42318' }}>Non</span>}
+                    {c.totp_actif && c.id !== admin?.id && (
+                      <button className="btn btn-secondary" style={{ fontSize: 11, padding: '2px 8px', marginLeft: 6 }} onClick={() => reinitialiser2fa(c)}>Réinitialiser</button>
+                    )}
                   </td>
                   <td>
                     {c.id !== admin?.id && (

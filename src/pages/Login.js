@@ -13,6 +13,8 @@ export default function Login({ onLogin }) {
   const [confirmMdp, setConfirmMdp] = useState('');
   const [msgMdp, setMsgMdp] = useState('');
   const [loadingMdp, setLoadingMdp] = useState(false);
+  const [jeton2fa, setJeton2fa] = useState(null); // mot de passe accepte, code a 6 chiffres attendu
+  const [code2fa, setCode2fa] = useState('');
 
   const changerMotDePasse = async () => {
     if (!ancienMdp || !nouveauMdp || !confirmMdp) { setMsgMdp('Tous les champs sont requis'); return; }
@@ -46,7 +48,9 @@ export default function Login({ onLogin }) {
         body: JSON.stringify({ identifiant: email.trim(), password })
       });
       const data = await response.json();
-      if (data.success) {
+      if (data.success && data.etape === '2fa') {
+        setJeton2fa(data.jeton_2fa); setCode2fa(''); setPassword('');
+      } else if (data.success) {
         localStorage.setItem('admin_token', data.token);
         localStorage.setItem('admin_user', JSON.stringify(data.admin));
         onLogin(data.admin);
@@ -58,6 +62,52 @@ export default function Login({ onLogin }) {
     }
     setLoading(false);
   };
+
+  const validerCode = async () => {
+    if (!code2fa.trim()) { setErreur('Saisissez le code de votre application'); return; }
+    setLoading(true); setErreur('');
+    try {
+      const r = await fetch(API_URL + '/api/admin-auth/login/2fa', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jeton_2fa: jeton2fa, code: code2fa.trim() })
+      });
+      const data = await r.json();
+      if (data.success) {
+        localStorage.setItem('admin_token', data.token);
+        localStorage.setItem('admin_user', JSON.stringify(data.admin));
+        onLogin(data.admin);
+      } else {
+        if (data.code === 'JETON_2FA_EXPIRE') setJeton2fa(null);
+        setErreur(data.error || 'Code incorrect');
+      }
+    } catch (e) { setErreur('Impossible de contacter le serveur'); }
+    setLoading(false);
+  };
+
+  // Etape 2 : code de l'application d'authentification (ou code de secours)
+  if (jeton2fa) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#f5f6fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ backgroundColor: '#fff', borderRadius: 16, padding: 40, width: 400, maxWidth: '90vw', boxShadow: '0 4px 24px rgba(0,0,0,0.08)', textAlign: 'center' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>🔐</div>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#333', margin: '0 0 8px' }}>Vérification en deux étapes</h1>
+          <p style={{ color: '#666', fontSize: 14, lineHeight: 1.5, margin: '0 0 20px' }}>
+            Ouvrez votre application d’authentification et saisissez le code à 6 chiffres de « TrustArtisan Admin ».
+          </p>
+          {erreur && <div style={{ backgroundColor: '#FEF0EE', border: '1px solid #E74C3C', borderRadius: 8, padding: '10px 14px', marginBottom: 16, color: '#E74C3C', fontSize: 13, textAlign: 'left' }}>{erreur}</div>}
+          <input autoFocus inputMode="numeric" autoComplete="one-time-code" maxLength={11} placeholder="123456"
+            value={code2fa} onChange={e => setCode2fa(e.target.value)} onKeyDown={e => e.key === 'Enter' && validerCode()}
+            style={{ width: '100%', padding: '12px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 24, letterSpacing: 6, textAlign: 'center', boxSizing: 'border-box', marginBottom: 16 }} />
+          <button onClick={validerCode} disabled={loading}
+            style={{ width: '100%', padding: '12px', backgroundColor: loading ? '#aaa' : '#1D9E75', color: '#fff', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}>
+            {loading ? 'Vérification...' : 'Valider'}
+          </button>
+          <p style={{ color: '#888', fontSize: 12, marginTop: 16, lineHeight: 1.5 }}>Téléphone perdu ? Saisissez l’un de vos codes de secours (format XXXXX-XXXXX).</p>
+          <p onClick={() => { setJeton2fa(null); setErreur(''); }} style={{ color: '#1D9E75', fontSize: 13, cursor: 'pointer', marginTop: 8 }}>← Revenir à l’identification</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f5f6fa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -114,6 +164,7 @@ export default function Login({ onLogin }) {
           <label style={{ fontSize: 13, fontWeight: 600, color: '#555', display: 'block', marginBottom: 6 }}>Mot de passe</label>
           <input
             type="password"
+            autoComplete="current-password"
             placeholder="••••••••"
             value={password}
             onChange={e => setPassword(e.target.value)}

@@ -15,6 +15,7 @@ const MENU = [
   { path: '/comptabilite', icon: '📒', label: 'Comptabilite', roles: ['super_admin'] },
   { path: '/community-manager', icon: '📣', label: 'Community Manager', roles: ['super_admin'] },
   { path: '/calendrier', icon: '📅', label: 'Calendrier', roles: ['super_admin'] },
+  { path: '/securite', icon: '🔐', label: 'Sécurité du compte', roles: ['super_admin', 'moderateur', 'validateur'] },
 ];
 
 const ROLE_LABELS = {
